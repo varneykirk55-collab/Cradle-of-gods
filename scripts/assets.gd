@@ -1,0 +1,66 @@
+class_name Assets
+extends RefCounted
+## Loads the Blender-generated .glb models (assets/models) and caches meshes and
+## per-tribe recoloured materials.
+
+static var _meshes := {}
+static var _tribe_mats := {}
+static var _soft_tex: Texture2D = null
+
+static func mesh(model: String) -> Mesh:
+	if _meshes.has(model):
+		return _meshes[model]
+	var ps: PackedScene = load("res://assets/models/%s.glb" % model)
+	var inst := ps.instantiate()
+	var mi := _find_mesh(inst)
+	var m: Mesh = mi.mesh if mi else BoxMesh.new()
+	inst.free()
+	_meshes[model] = m
+	return m
+
+static func _find_mesh(n: Node) -> MeshInstance3D:
+	if n is MeshInstance3D:
+		return n
+	for c in n.get_children():
+		var r := _find_mesh(c)
+		if r: return r
+	return null
+
+## Index of the surface whose material is named "Tribe" (recoloured per tribe).
+static func tribe_surface(m: Mesh) -> int:
+	for i in m.get_surface_count():
+		var sm := m.surface_get_material(i)
+		if sm and sm.resource_name == "Tribe":
+			return i
+	return -1
+
+static func tribe_material(m: Mesh, color: Color) -> Material:
+	var key := "%d_%s" % [m.get_instance_id(), color.to_html()]
+	if _tribe_mats.has(key):
+		return _tribe_mats[key]
+	var idx := tribe_surface(m)
+	var base: Material = m.surface_get_material(idx) if idx >= 0 else null
+	var mat: StandardMaterial3D = base.duplicate() if base is StandardMaterial3D else StandardMaterial3D.new()
+	mat.albedo_color = color
+	_tribe_mats[key] = mat
+	return mat
+
+static func apply_tribe(mi: MeshInstance3D, color: Color) -> void:
+	var idx := tribe_surface(mi.mesh)
+	if idx >= 0:
+		mi.set_surface_override_material(idx, tribe_material(mi.mesh, color))
+
+static func soft_texture() -> Texture2D:
+	if _soft_tex == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 1))
+		g.set_color(1, Color(1, 1, 1, 0))
+		var t := GradientTexture2D.new()
+		t.gradient = g
+		t.fill = GradientTexture2D.FILL_RADIAL
+		t.fill_from = Vector2(0.5, 0.5)
+		t.fill_to = Vector2(1.0, 0.5)
+		t.width = 64
+		t.height = 64
+		_soft_tex = t
+	return _soft_tex
