@@ -23,7 +23,7 @@ func _ready() -> void:
 	for a in args:
 		if a.begins_with("--seed="):
 			world_seed = int(a.substr(7))
-	if "--autotest" in args or "--shots" in args:
+	if "--autotest" in args or "--shots" in args or "--demo" in args:
 		if not _has_seed_arg(): world_seed = 4242
 	print("Cradle of Gods - world seed %d" % world_seed)
 	_setup_environment()
@@ -55,7 +55,7 @@ func _ready() -> void:
 		var at := AutoTest.new()
 		add_child(at)
 		at.run(self)
-	elif "--shots" in args:
+	elif "--shots" in args or "--demo" in args:
 		var sh := Shots.new()
 		add_child(sh)
 		sh.run(self)

@@ -148,8 +148,8 @@ regression suite) · `shots.gd` (rendered tour, synthetic input test, scripted d
 
 ## Testing
 `tools/run_tests.sh` (set `GODOT=/path/to/godot`):
-1. **Headless regression suite**: `godot --headless --path . --fixed-fps 30 -- --autotest` — about
-   80 checks over ~35 simulated minutes: world generation, growth, gathering, settlement progression,
+1. **Headless regression suite**: `godot --headless --path . --fixed-fps 30 -- --autotest` — 81
+   checks over ~35 simulated minutes (passes on world seeds 4242–4249; add `--seed=N` to try others): world generation, growth, gathering, settlement progression,
    stuck villagers, raise/lower + collider, brush land from deep ocean (walkable, beach, collider),
    tiles (seams, connectivity, repeated placement), remove land (splits islands), a villager walking
    onto a new peninsula via A*, a settlement founded and built on a new island, trees on new land,

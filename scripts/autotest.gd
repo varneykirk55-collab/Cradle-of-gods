@@ -367,7 +367,20 @@ func _test_hand_animal_and_props() -> void:
 	_check("hand: hover detects animal", await _wait_hover("animal", a), "")
 	hand.press()
 	await _frames(12)
-	_check("hand: grab deer", a.state == Animal.S.CARRIED, "state=%d" % a.state)
+	if not is_instance_valid(a) or a.dead:
+		# taken by wolves / a hunter while the hand reached for it: try a fresh deer
+		hand.release()
+		await _frames(30)
+		a = sim.eco.spawn("deer", sim.nav.nearest_walkable(sim.live_tribes()[0].center + Vector3(10, 0, -6), 8), false)
+		a._rest(60.0)
+		m.rig.set_view(a.position, 30.0, 0.8, 0.9, true)
+		await _frames(2, false)
+		_pointer(a.position)
+		await _wait_hover("animal", a)
+		hand.press()
+		await _frames(12)
+	_check("hand: grab deer", is_instance_valid(a) and a.state == Animal.S.CARRIED, "state=%d" % (a.state if is_instance_valid(a) else -1))
+	if not is_instance_valid(a): return
 	var dw = sim.nav.nearest_walkable(a.position + Vector3(8, 0, 0), 6)
 	var dest: Vector3 = dw if dw != null else a.position
 	for i in 30:
