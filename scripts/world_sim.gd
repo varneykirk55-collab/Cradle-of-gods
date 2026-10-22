@@ -547,7 +547,7 @@ func ignite_res(r: Res) -> void:
 	if fires.size() > 90: return
 	r.burning = true
 	var node := FX.fire(self, r.pos + Vector3(0, 1.0 * r.scale, 0), 0.9 * r.scale)
-	fires.append({"res": r, "bld": null, "t": rng.randf_range(4.0, 7.0), "node": node, "spread": 1.0})
+	fires.append({"res": r, "bld": null, "t": rng.randf_range(6.0, 10.0), "node": node, "spread": 1.0})
 
 func ignite_building(b: Building) -> void:
 	if not b.alive or b.burning: return
@@ -583,7 +583,7 @@ func _update_fires(dt: float) -> void:
 		if f["spread"] <= 0.0:
 			f["spread"] = 1.5
 			for r in resources_in_radius(p, 2.6):
-				if rng.randf() < 0.22: ignite_res(r)
+				if rng.randf() < 0.3: ignite_res(r)
 			for v in villagers.duplicate():
 				if Vector2(v.position.x - p.x, v.position.z - p.z).length() < 0.9:
 					kill_villager(v, "fire")

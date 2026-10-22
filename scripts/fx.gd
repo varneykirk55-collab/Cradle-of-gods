@@ -83,8 +83,8 @@ static func fire(parent: Node, pos: Vector3, size := 1.0) -> CPUParticles3D:
 	return p
 
 static func explosion(parent: Node, pos: Vector3, size := 1.0) -> void:
-	var p := _base(parent, pos, int(70 * size), 1.6, true)
-	p.mesh = _quad(2.6 * size, pmat(Color(1, 1, 1)))
+	var p := _base(parent, pos, int(90 * size), 1.6, true)
+	p.mesh = _quad(1.8 * size, pmat(Color(1, 1, 1)))
 	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 	p.emission_sphere_radius = 1.5 * size
 	p.direction = Vector3.UP
@@ -96,7 +96,7 @@ static func explosion(parent: Node, pos: Vector3, size := 1.0) -> void:
 	p.gravity = Vector3(0, 1.0, 0)
 	p.scale_amount_min = 0.8
 	p.scale_amount_max = 2.0
-	p.color_ramp = _ramp([Color(1, 0.97, 0.75, 1), Color(1, 0.6, 0.1, 1), Color(0.85, 0.25, 0.05, 0.85), Color(0.2, 0.1, 0.08, 0)])
+	p.color_ramp = _ramp([Color(1, 0.75, 0.3, 1), Color(1, 0.38, 0.05, 1), Color(0.55, 0.12, 0.04, 0.75), Color(0.15, 0.1, 0.08, 0)])
 	var s := _base(parent, pos + Vector3(0, 1.5, 0), int(30 * size), 4.0, true)
 	s.mesh = _quad(3.5 * size, pmat(Color(1, 1, 1)))
 	s.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE

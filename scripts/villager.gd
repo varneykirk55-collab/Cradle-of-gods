@@ -32,10 +32,11 @@ func setup(p_sim, p_tribe, pos: Vector3, child: bool) -> void:
 	lifespan = randf_range(260.0, 380.0)
 	body = MeshInstance3D.new()
 	body.mesh = Assets.mesh("villager")
+	body.scale = Vector3.ONE * 1.35  # slightly heroic proportions so villagers read from the god camera
 	add_child(body)
 	bundle = MeshInstance3D.new()
 	bundle.mesh = sim.bundle_mesh
-	bundle.position = Vector3(0, 0.98, 0)
+	bundle.position = Vector3(0, 1.25, 0)
 	bundle.visible = false
 	add_child(bundle)
 	position = pos

@@ -62,59 +62,62 @@ PASS  lightning ignites trees  fires=4
 [t=302] Isgard has grown into a Village!
 [t=303] Myrvik raised a stone house.
 [t=305] The Ravnfolk great hall was destroyed by fire!
-INFO after 10s of fire: fires=1 trees 680 -> 679
+INFO after 10s of fire: fires=3 trees 680 -> 678
 [t=310] The Ulfheim great hall was destroyed by a meteor!
-[t=310] A meteor struck! 7 dead, 5 buildings destroyed.
+[t=310] A meteor struck! 8 dead, 5 buildings destroyed.
 PASS  meteor destroys buildings  40 -> 35 buildings
 PASS  meteor crater  height 3.22 -> -3.17
-INFO meteor deaths: 7, fires now: 1
+INFO meteor deaths: 8, fires now: 3
 [t=311] Ulfheim has grown into a Village!
-[t=316] Eikvald raised a stone house.
-[t=317] Eikvald has grown into a Town!
-[t=320] Solbrand raised a stone house.
-STAT t=  320s pop=124 tribes=9 buildings= 36 trees= 683 rocks=121 bushes=157 fires= 0 food=375 wood=429 stone=184 births=140 deaths=40 built=55 destroyed=7
-[t=323] Myrvik raised a stone house.
-[t=326] Hrafnir has grown into a Village!
-STAT t=  330s pop=133 tribes=9 buildings= 39 trees= 678 rocks=121 bushes=153 fires= 0 food=398 wood=441 stone=188 births=149 deaths=40 built=56 destroyed=7
-STAT t=  340s pop=144 tribes=9 buildings= 40 trees= 677 rocks=120 bushes=156 fires= 0 food=411 wood=459 stone=188 births=161 deaths=41 built=59 destroyed=7
-[t=346] Ravnfolk raised a stone house.
-[t=349] Bjarkan has grown into a Village!
-STAT t=  350s pop=148 tribes=9 buildings= 42 trees= 678 rocks=118 bushes=155 fires= 0 food=424 wood=446 stone=200 births=168 deaths=44 built=61 destroyed=7
-[t=352] Solbrand raised a stone house.
-[t=352] Solbrand has grown into a Town!
-STAT t=  361s pop=157 tribes=9 buildings= 44 trees= 678 rocks=115 bushes=150 fires= 0 food=415 wood=471 stone=226 births=178 deaths=45 built=64 destroyed=7
-[t=364] Hrafnir has grown into a Village!
-STAT t=  371s pop=166 tribes=9 buildings= 46 trees= 673 rocks=114 bushes=145 fires= 0 food=479 wood=460 stone=222 births=187 deaths=45 built=67 destroyed=7
-[t=374] Eikvald raised a stone house.
-[t=375] Myrvik raised a stone house.
-[t=376] Ravnfolk raised a stone house.
-[t=376] Myrvik has grown into a Town!
-[t=382] Bjarkan raised a stone house.
-[t=387] Solbrand raised a stone house.
-STAT t=  401s pop=182 tribes=9 buildings= 46 trees= 669 rocks=110 bushes=127 fires= 0 food=518 wood=565 stone=270 births=211 deaths=53 built=73 destroyed=7
-[t=401] Bjarkan raised a stone house.
-STAT t=  431s pop=190 tribes=9 buildings= 50 trees= 664 rocks=102 bushes=122 fires= 0 food=541 wood=616 stone=316 births=231 deaths=65 built=76 destroyed=7
-[t=437] Eikvald raised a stone house.
-[t=439] Bjarkan raised a stone house.
-[t=440] Bjarkan has grown into a Town!
-[t=451] Solbrand raised a stone house.
-[t=455] Myrvik raised a stone house.
-STAT t=  461s pop=205 tribes=9 buildings= 50 trees= 653 rocks= 98 bushes=122 fires= 0 food=661 wood=724 stone=346 births=253 deaths=72 built=82 destroyed=7
-STAT t=  491s pop=220 tribes=9 buildings= 57 trees= 657 rocks= 93 bushes=106 fires= 0 food=741 wood=714 stone=400 births=276 deaths=80 built=88 destroyed=7
-[t=500] Ravnfolk raised a stone house.
-[t=505] Bjarkan raised a stone house.
-[t=513] Myrvik raised a stone house.
-STAT t=  521s pop=224 tribes=9 buildings= 59 trees= 622 rocks= 92 bushes=112 fires= 0 food=693 wood=907 stone=396 births=298 deaths=98 built=94 destroyed=7
-STAT t=  551s pop=238 tribes=9 buildings= 64 trees= 613 rocks= 90 bushes=100 fires= 0 food=678 wood=944 stone=432 births=326 deaths=112 built=97 destroyed=7
-[t=566] Bjarkan raised a stone house.
-STAT t=  581s pop=236 tribes=9 buildings= 65 trees= 618 rocks= 90 bushes= 91 fires= 0 food=682 wood=1004 stone=424 births=348 deaths=136 built=100 destroyed=7
-STAT t=  611s pop=235 tribes=9 buildings= 66 trees= 622 rocks= 90 bushes= 99 fires= 0 food=701 wood=1039 stone=424 births=371 deaths=160 built=101 destroyed=7
+[t=315] Eikvald raised a stone house.
+[t=315] Eikvald has grown into a Town!
+[t=319] Solbrand raised a stone house.
+STAT t=  320s pop=122 tribes=9 buildings= 36 trees= 678 rocks=121 bushes=157 fires= 0 food=388 wood=420 stone=184 births=139 deaths=41 built=55 destroyed=7
+[t=324] Myrvik raised a stone house.
+[t=325] Hrafnir has grown into a Village!
+STAT t=  330s pop=130 tribes=9 buildings= 39 trees= 675 rocks=121 bushes=154 fires= 0 food=369 wood=435 stone=188 births=148 deaths=42 built=57 destroyed=7
+STAT t=  340s pop=139 tribes=9 buildings= 40 trees= 673 rocks=120 bushes=156 fires= 0 food=389 wood=480 stone=180 births=157 deaths=42 built=59 destroyed=7
+[t=344] Ravnfolk raised a stone house.
+[t=346] Hrafnir has grown into a Village!
+STAT t=  350s pop=145 tribes=9 buildings= 40 trees= 674 rocks=118 bushes=156 fires= 0 food=403 wood=516 stone=198 births=166 deaths=45 built=61 destroyed=7
+[t=354] Bjarkan has grown into a Village!
+[t=359] Solbrand raised a stone house.
+[t=359] Solbrand has grown into a Town!
+STAT t=  361s pop=154 tribes=9 buildings= 44 trees= 667 rocks=116 bushes=153 fires= 0 food=434 wood=513 stone=216 births=177 deaths=47 built=64 destroyed=7
+STAT t=  371s pop=164 tribes=9 buildings= 44 trees= 664 rocks=115 bushes=150 fires= 0 food=458 wood=534 stone=230 births=187 deaths=47 built=66 destroyed=7
+[t=374] Myrvik raised a stone house.
+[t=375] Myrvik has grown into a Town!
+[t=377] Eikvald raised a stone house.
+[t=378] Myrvik has grown into a Village!
+[t=379] Ravnfolk raised a stone house.
+[t=380] Bjarkan raised a stone house.
+[t=385] Myrvik has grown into a Town!
+[t=390] Solbrand raised a stone house.
+STAT t=  401s pop=175 tribes=9 buildings= 45 trees= 646 rocks=108 bushes=139 fires= 0 food=539 wood=650 stone=276 births=208 deaths=57 built=72 destroyed=7
+[t=407] Bjarkan raised a stone house.
+STAT t=  431s pop=187 tribes=9 buildings= 49 trees= 638 rocks=105 bushes=125 fires= 0 food=627 wood=686 stone=320 births=229 deaths=66 built=77 destroyed=7
+[t=433] Eikvald raised a stone house.
+[t=443] Bjarkan raised a stone house.
+[t=443] Bjarkan has grown into a Town!
+[t=446] Solbrand raised a stone house.
+[t=458] Myrvik raised a stone house.
+STAT t=  461s pop=201 tribes=9 buildings= 51 trees= 631 rocks=102 bushes=110 fires= 0 food=670 wood=750 stone=332 births=251 deaths=74 built=83 destroyed=7
+STAT t=  491s pop=217 tribes=9 buildings= 57 trees= 636 rocks= 97 bushes= 76 fires= 0 food=768 wood=757 stone=364 births=276 deaths=83 built=88 destroyed=7
+[t=495] Bjarkan raised a stone house.
+[t=503] Ravnfolk raised a stone house.
+[t=505] Solbrand raised a stone house.
+[t=514] Myrvik raised a stone house.
+STAT t=  521s pop=218 tribes=9 buildings= 58 trees= 622 rocks= 90 bushes= 70 fires= 0 food=755 wood=909 stone=418 births=297 deaths=103 built=94 destroyed=7
+STAT t=  551s pop=227 tribes=9 buildings= 61 trees= 620 rocks= 88 bushes= 65 fires= 0 food=806 wood=979 stone=464 births=320 deaths=117 built=97 destroyed=7
+[t=556] Bjarkan raised a stone house.
+STAT t=  581s pop=231 tribes=9 buildings= 64 trees= 623 rocks= 87 bushes= 72 fires= 0 food=728 wood=1045 stone=464 births=342 deaths=135 built=101 destroyed=7
+[t=610] Isgard raised a stone house.
+STAT t=  611s pop=232 tribes=9 buildings= 66 trees= 629 rocks= 85 bushes= 68 fires= 0 food=780 wood=1062 stone=466 births=365 deaths=157 built=104 destroyed=7
 [t=631] The Ulfheim tribe has perished.
-STAT t=  641s pop=236 tribes=8 buildings= 67 trees= 628 rocks= 90 bushes= 93 fires= 0 food=676 wood=994 stone=368 births=392 deaths=180 built=104 destroyed=8
-[t=645] Eikvald raised a stone house.
-[t=652] Myrvik raised a stone house.
-STAT t=  671s pop=239 tribes=8 buildings= 69 trees= 625 rocks= 89 bushes= 75 fires= 0 food=708 wood=1050 stone=360 births=417 deaths=202 built=108 destroyed=8
-PASS  world still alive after long run  pop=239
+[t=639] Eikvald raised a stone house.
+STAT t=  641s pop=229 tribes=8 buildings= 66 trees= 630 rocks= 83 bushes= 61 fires= 0 food=747 wood=1048 stone=416 births=383 deaths=178 built=106 destroyed=8
+STAT t=  671s pop=222 tribes=8 buildings= 66 trees= 626 rocks= 83 bushes= 61 fires= 0 food=681 wood=1103 stone=410 births=405 deaths=207 built=106 destroyed=8
+PASS  world still alive after long run  pop=222
 POWER CASTS { "raise": 30, "lower": 30, "villager": 2, "forest": 10, "rain": 1, "lightning": 2, "meteor": 1 }
 AUTOTEST DONE fails=0
 WARNING: ObjectDB instances leaked at exit (run with --verbose for details).

@@ -69,7 +69,7 @@ func _setup_environment() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.38
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 0.95
+	env.tonemap_exposure = 0.9
 	env.fog_enabled = false
 	env.fog_light_color = Color(0.72, 0.8, 0.9)
 	env.fog_density = 0.0035
@@ -322,9 +322,9 @@ func _shots() -> void:
 	powers.cast(5, lp, 0.0)
 	await _frames(2)
 	await _save_shot("06_lightning")
-	for i in 8:
+	for i in 3:
 		sim.update(0.5)
-		await _frames(2)
+		await _frames(1)
 	await _save_shot("07_forest_fire")
 	# meteor on a village
 	powers.select(6)
@@ -382,7 +382,9 @@ func _input_test() -> void:
 	await _frames(2)
 	_mouse_button(MOUSE_BUTTON_RIGHT, center + Vector2(120, 0), false)
 	_check("input: right-drag orbits", absf(rig.yaw - y0) > 0.3, "yaw %.2f -> %.2f" % [y0, rig.yaw])
+	rig.set_view(t0.center + Vector3(3, 0, 3), 30.0, 0.8, 0.9, true)
 	await _frames(20)
+	print("INFO fps under this renderer: %.1f" % Engine.get_frames_per_second())
 	# hotkey 3 + left click at screen centre spawns villagers
 	_key(KEY_3, true)
 	_key(KEY_3, false)
@@ -395,7 +397,7 @@ func _input_test() -> void:
 	await _frames(1)
 	_mouse_button(MOUSE_BUTTON_LEFT, center, false)
 	await _frames(3)
-	_check("input: click casts power", sim.population() > pop0 or (ground != null and not terrain.is_land(ground.x, ground.z)), "pop %d -> %d (ground=%s)" % [pop0, sim.population(), ground])
+	_check("input: click casts power", sim.population() == pop0 + 3, "pop %d -> %d (ground=%s)" % [pop0, sim.population(), ground])
 	await _save_shot("13_input_spawn")
 	# toolbar button click (Meteor icon) via real GUI hit-testing
 	var btn: Button = hud.power_buttons[6]

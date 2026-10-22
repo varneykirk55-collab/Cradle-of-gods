@@ -145,11 +145,11 @@ func biome_color(h: float, slope: float, m: float, fert: float, rnd: float) -> C
 		Biome.SNOW:
 			c = Color(0.95, 0.96, 0.99)
 		Biome.ROCK:
-			c = Color(0.56, 0.53, 0.50).lerp(Color(0.43, 0.41, 0.42), clampf((h - 6.0) / 14.0, 0.0, 1.0))
+			c = Color(0.47, 0.44, 0.41).lerp(Color(0.38, 0.36, 0.38), clampf((h - 6.0) / 14.0, 0.0, 1.0))
 			if h > 15.0:
 				c = c.lerp(Color(0.92, 0.93, 0.96), clampf((h - 15.0) / 6.0, 0.0, 0.8))
 		Biome.ALPINE:
-			c = Color(0.44, 0.56, 0.32).lerp(Color(0.55, 0.55, 0.42), clampf((h - 8.0) / 4.0, 0.0, 1.0))
+			c = Color(0.38, 0.50, 0.28).lerp(Color(0.47, 0.48, 0.36), clampf((h - 8.0) / 4.0, 0.0, 1.0))
 		Biome.DRY:
 			c = Color(0.72, 0.68, 0.40).lerp(Color(0.50, 0.60, 0.30), m / 0.33)
 		Biome.GRASS:
