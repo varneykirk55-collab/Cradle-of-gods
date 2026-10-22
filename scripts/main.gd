@@ -348,5 +348,80 @@ func _shots() -> void:
 	rig.set_view(mp, 60.0, 0.5, 0.7, true)
 	await _frames(10)
 	await _save_shot("12_terrain_sculpt")
+	await _input_test()
 	print("SHOTS DONE ", sim.stat_line())
 	get_tree().quit()
+
+## Drives the game through synthetic OS-level input events (keyboard + mouse),
+## exercising the same code paths a player uses.
+func _input_test() -> void:
+	var t0: WorldSim.Tribe = sim.live_tribes()[0]
+	rig.set_view(t0.center, 40.0, 0.8, 0.8, true)
+	await _frames(5)
+	var center := get_viewport().get_visible_rect().size * 0.5
+	# keyboard pan
+	var f0 := rig.focus
+	_key(KEY_W, true)
+	await _frames(15)
+	_key(KEY_W, false)
+	_check("input: W pans camera", rig.focus.distance_to(f0) > 2.0, "moved %.1f" % rig.focus.distance_to(f0))
+	# wheel zoom
+	var d0 := rig.dist
+	_mouse_button(MOUSE_BUTTON_WHEEL_UP, center, true)
+	_mouse_button(MOUSE_BUTTON_WHEEL_UP, center, false)
+	await _frames(2)
+	_check("input: wheel zooms", rig.dist < d0, "%.1f -> %.1f" % [d0, rig.dist])
+	# right-drag orbit
+	var y0 := rig.yaw
+	_mouse_button(MOUSE_BUTTON_RIGHT, center, true)
+	var mm := InputEventMouseMotion.new()
+	mm.position = center + Vector2(120, 0)
+	mm.relative = Vector2(120, 0)
+	mm.button_mask = MOUSE_BUTTON_MASK_RIGHT
+	Input.parse_input_event(mm)
+	await _frames(2)
+	_mouse_button(MOUSE_BUTTON_RIGHT, center + Vector2(120, 0), false)
+	_check("input: right-drag orbits", absf(rig.yaw - y0) > 0.3, "yaw %.2f -> %.2f" % [y0, rig.yaw])
+	await _frames(20)
+	# hotkey 3 + left click at screen centre spawns villagers
+	_key(KEY_3, true)
+	_key(KEY_3, false)
+	await _frames(2)
+	_check("input: key 3 selects Create Life", powers.current == 2, "current=%d" % powers.current)
+	var pop0 := sim.population()
+	powers.cooldown = 0.0
+	var ground = powers.pick(center)
+	_mouse_button(MOUSE_BUTTON_LEFT, center, true)
+	await _frames(1)
+	_mouse_button(MOUSE_BUTTON_LEFT, center, false)
+	await _frames(3)
+	_check("input: click casts power", sim.population() > pop0 or (ground != null and not terrain.is_land(ground.x, ground.z)), "pop %d -> %d (ground=%s)" % [pop0, sim.population(), ground])
+	await _save_shot("13_input_spawn")
+	# toolbar button click (Meteor icon) via real GUI hit-testing
+	var btn: Button = hud.power_buttons[6]
+	var bc := btn.get_global_rect().get_center()
+	_mouse_button(MOUSE_BUTTON_LEFT, bc, true)
+	_mouse_button(MOUSE_BUTTON_LEFT, bc, false)
+	await _frames(2)
+	_check("input: clicking toolbar icon selects power", powers.current == 6, "current=%d" % powers.current)
+	# space pauses
+	_key(KEY_SPACE, true)
+	_key(KEY_SPACE, false)
+	await _frames(2)
+	_check("input: space pauses", speed_idx == 0, "speed=%s" % speed_name())
+
+func _key(k: Key, pressed: bool) -> void:
+	var e := InputEventKey.new()
+	e.keycode = k
+	e.physical_keycode = k
+	e.pressed = pressed
+	Input.parse_input_event(e)
+
+func _mouse_button(b: MouseButton, pos: Vector2, pressed: bool) -> void:
+	var e := InputEventMouseButton.new()
+	e.button_index = b
+	e.position = pos
+	e.global_position = pos
+	e.pressed = pressed
+	Input.warp_mouse(pos)
+	Input.parse_input_event(e)

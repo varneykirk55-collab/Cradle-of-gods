@@ -11,9 +11,11 @@ static func pmat(color: Color, additive := false, billboard := true) -> Standard
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.vertex_color_use_as_albedo = true
+	m.vertex_color_is_srgb = true
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	if billboard:
 		m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		m.billboard_keep_scale = true  # inactive particles have zero scale; without this they render as black discs
 		m.albedo_texture = Assets.soft_texture()
 	if additive:
 		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
@@ -43,6 +45,7 @@ static func _base(parent: Node, pos: Vector3, amount: int, lifetime: float, one_
 	p.amount = amount
 	p.lifetime = lifetime
 	p.one_shot = one_shot
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(p)
 	p.global_position = pos
 	if one_shot:
@@ -175,6 +178,7 @@ static func rain(parent: Node, extent: float) -> CPUParticles3D:
 	var p := CPUParticles3D.new()
 	p.amount = 420
 	p.lifetime = 0.9
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(p)
 	var b := BoxMesh.new()
 	b.size = Vector3(0.07, 0.9, 0.07)

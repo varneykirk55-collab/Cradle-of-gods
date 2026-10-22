@@ -153,7 +153,7 @@ func biome_color(h: float, slope: float, m: float, fert: float, rnd: float) -> C
 		Biome.DRY:
 			c = Color(0.72, 0.68, 0.40).lerp(Color(0.50, 0.60, 0.30), m / 0.33)
 		Biome.GRASS:
-			c = Color(0.46, 0.63, 0.29).lerp(Color(0.36, 0.56, 0.25), (m - 0.33) / 0.27)
+			c = Color(0.45, 0.58, 0.29).lerp(Color(0.35, 0.52, 0.25), (m - 0.33) / 0.27)
 		_:
 			c = Color(0.27, 0.47, 0.22).lerp(Color(0.21, 0.40, 0.19), clampf((m - 0.6) / 0.4, 0.0, 1.0))
 	if b != Biome.DEEP and b != Biome.SHALLOW and b != Biome.SNOW:

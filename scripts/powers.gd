@@ -197,6 +197,7 @@ func _lightning(p: Vector3) -> void:
 		glow.mesh = glow_cyl
 		seg.add_child(glow)
 	var light := OmniLight3D.new()
+	light.shadow_enabled = false
 	light.light_color = Color(0.75, 0.85, 1.0)
 	light.light_energy = 10.0
 	light.omni_range = 30.0
@@ -222,7 +223,7 @@ func _meteor(p: Vector3) -> void:
 	mm.albedo_color = Color(0.35, 0.12, 0.05)
 	mm.emission_enabled = true
 	mm.emission = Color(1.0, 0.42, 0.1)
-	mm.emission_energy_multiplier = 1.6
+	mm.emission_energy_multiplier = 0.9
 	rock.material_override = mm
 	sim.add_child(rock)
 	var start := p + Vector3(-30, 55, -22)
