@@ -72,7 +72,7 @@ func _island_near(p: Vector3) -> int:
 
 func _cell_solid(x: int, z: int) -> bool:
 	var h := terrain.grid_h(x, z)
-	if h < Terrain.SEA + 0.15: return true
+	if h <= Terrain.SEA + 0.35: return true   # same threshold as Terrain.is_land
 	if x <= 1 or z <= 1 or x >= Terrain.SIZE - 1 or z >= Terrain.SIZE - 1: return true
 	var m := 0.0
 	m = maxf(m, absf(terrain.grid_h(x + 1, z) - h))

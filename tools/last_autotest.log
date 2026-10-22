@@ -1,124 +1,669 @@
-Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
 
 Cradle of Gods - world seed 4242
 [t=0] The Ravnfolk tribe has settled.
 [t=0] The Ulfheim tribe has settled.
 [t=0] The Skaldir tribe has settled.
-STAT t=    0s pop= 18 tribes=3 buildings=  3 trees= 645 rocks=144 bushes= 43 fires= 0 food=36 wood=18 stone=0 births=0 deaths=0 built=3 destroyed=0
-[t=26] Ulfheim has grown into a Village!
-STAT t=   30s pop= 20 tribes=3 buildings= 10 trees= 652 rocks=144 bushes= 66 fires= 0 food=58 wood=23 stone=0 births=2 deaths=0 built=7 destroyed=0
-[t=41] Skaldir has grown into a Village!
-[t=42] Ravnfolk has grown into a Village!
-STAT t=   60s pop= 31 tribes=3 buildings= 13 trees= 658 rocks=144 bushes= 96 fires= 0 food=44 wood=65 stone=8 births=13 deaths=0 built=12 destroyed=0
-[t=70] Ravnfolk raised a stone house.
-[t=89] Ulfheim raised a stone house.
-STAT t=   90s pop= 39 tribes=3 buildings= 13 trees= 665 rocks=143 bushes=118 fires= 0 food=55 wood=76 stone=20 births=21 deaths=0 built=15 destroyed=0
-[t=109] Ravnfolk raised a stone house.
-[t=119] Ulfheim raised a stone house.
-STAT t=  120s pop= 43 tribes=3 buildings= 13 trees= 671 rocks=141 bushes=140 fires= 0 food=74 wood=99 stone=28 births=25 deaths=0 built=17 destroyed=0
-[t=127] The Eikvald tribe has settled.
-[t=127] Settlers from Ulfheim founded Eikvald.
-[t=137] The Solbrand tribe has settled.
-[t=137] Settlers from Ravnfolk founded Solbrand.
-[t=142] Ravnfolk raised a stone house.
-STAT t=  150s pop= 50 tribes=5 buildings= 18 trees= 682 rocks=139 bushes=159 fires= 0 food=119 wood=117 stone=52 births=32 deaths=0 built=20 destroyed=0
-[t=176] Ravnfolk has grown into a Town!
-[t=180] Eikvald has grown into a Village!
-STAT t=  180s pop= 64 tribes=5 buildings= 23 trees= 677 rocks=134 bushes=159 fires= 0 food=120 wood=202 stone=80 births=47 deaths=1 built=26 destroyed=0
-[t=189] Solbrand has grown into a Village!
-[t=194] The Myrvik tribe has settled.
-[t=194] Settlers from Ulfheim founded Myrvik.
-STAT t=  210s pop= 76 tribes=6 buildings= 25 trees= 684 rocks=133 bushes=156 fires= 0 food=150 wood=254 stone=112 births=63 deaths=5 built=29 destroyed=0
-[t=216] Eikvald raised a stone house.
-STAT t=  240s pop= 87 tribes=6 buildings= 29 trees= 680 rocks=131 bushes=160 fires= 0 food=231 wood=270 stone=134 births=79 deaths=10 built=34 destroyed=0
-[t=240] Ravnfolk raised a stone house.
-[t=240] Solbrand raised a stone house.
-[t=246] The Hrafnir tribe has settled.
-[t=246] Settlers from Skaldir founded Hrafnir.
-[t=253] The Isgard tribe has settled.
-[t=253] Settlers from Ulfheim founded Isgard.
-[t=260] Ulfheim raised a stone house.
+STAT t=    0s pop= 18 tribes=3 buildings=  3 trees= 632 rocks=128 bushes= 48 fires= 0 food=36 wood=18 stone=0 births=0 deaths=0 built=3 destroyed=0 | faith=31 worship=11 heretics=0 priests=0 shrines=0 temples=0 prayer=150 | deer=26 rabbit=32 wolf=7 bird=18
+PASS  world: procedural island generated  land cells=11122
+PASS  world: open ocean around the island  corner height=-14.0
+PASS  world: starting tribes  tribes=3
+PASS  world: wildlife spawned  { "deer": 26, "rabbit": 32, "wolf": 7, "bird": 18 }
+PASS  world: nav grid has the main landmass  big islands=1
+STAT t=   30s pop= 21 tribes=3 buildings=  9 trees= 628 rocks=128 bushes= 58 fires= 0 food=53 wood=36 stone=0 births=3 deaths=0 built=8 destroyed=0 | faith=31 worship=12 heretics=0 priests=0 shrines=0 temples=0 prayer=151 | deer=27 rabbit=49 wolf=7 bird=18
+[t=32] Ravnfolk has grown into a Village!
+[t=32] Skaldir has grown into a Village!
+[t=39] Ulfheim has grown into a Village!
+STAT t=   60s pop= 32 tribes=3 buildings= 14 trees= 634 rocks=126 bushes= 72 fires= 0 food=49 wood=40 stone=0 births=14 deaths=0 built=12 destroyed=0 | faith=31 worship=18 heretics=0 priests=0 shrines=0 temples=0 prayer=152 | deer=37 rabbit=59 wolf=7 bird=18
+STAT t=   90s pop= 41 tribes=3 buildings= 17 trees= 651 rocks=125 bushes= 77 fires= 0 food=48 wood=43 stone=0 births=23 deaths=0 built=15 destroyed=0 | faith=31 worship=23 heretics=0 priests=0 shrines=0 temples=0 prayer=153 | deer=43 rabbit=75 wolf=8 bird=19
+[t=114] The Eikvald tribe has settled.
+[t=114] Settlers from Skaldir founded Eikvald.
+STAT t=  120s pop= 52 tribes=4 buildings= 21 trees= 654 rocks=125 bushes= 77 fires= 0 food=56 wood=32 stone=0 births=34 deaths=0 built=18 destroyed=0 | faith=31 worship=30 heretics=0 priests=0 shrines=0 temples=0 prayer=154 | deer=54 rabbit=81 wolf=11 bird=19
+[t=129] The Solbrand tribe has settled.
+[t=129] Settlers from Ulfheim founded Solbrand.
+[t=149] The Myrvik tribe has settled.
+[t=149] Settlers from Ravnfolk founded Myrvik.
+STAT t=  150s pop= 64 tribes=6 buildings= 25 trees= 668 rocks=124 bushes= 77 fires= 0 food=73 wood=74 stone=0 births=46 deaths=0 built=23 destroyed=0 | faith=30 worship=33 heretics=0 priests=0 shrines=0 temples=0 prayer=156 | deer=56 rabbit=89 wolf=13 bird=21
+[t=154] The Hrafnir tribe has settled.
+[t=154] Settlers from Skaldir founded Hrafnir.
+[t=171] Skaldir begins a shrine to the god.
+[t=172] Eikvald has grown into a Village!
+[t=180] Skaldir built a shrine to the god!
+STAT t=  180s pop= 76 tribes=7 buildings= 30 trees= 668 rocks=123 bushes= 82 fires= 0 food=116 wood=90 stone=6 births=59 deaths=1 built=27 destroyed=0 | faith=28 worship=33 heretics=0 priests=0 shrines=1 temples=0 prayer=158 | deer=68 rabbit=84 wolf=14 bird=20
+[t=180] Vigny became a priest of Skaldir.
+[t=182] Solbrand has grown into a Village!
+[t=207] The Isgard tribe has settled.
+[t=207] Settlers from Skaldir founded Isgard.
+STAT t=  210s pop= 91 tribes=8 buildings= 37 trees= 673 rocks=123 bushes= 84 fires= 0 food=174 wood=127 stone=14 births=77 deaths=4 built=35 destroyed=0 | faith=27 worship=36 heretics=0 priests=1 shrines=1 temples=0 prayer=160 | deer=65 rabbit=90 wolf=16 bird=16
+[t=213] Hrafnir has grown into a Village!
+[t=221] Skaldir gathers to worship at the shrine.
+[t=236] Ulfheim begins a shrine to the god.
+STAT t=  240s pop=110 tribes=8 buildings= 45 trees= 657 rocks=122 bushes= 86 fires= 0 food=189 wood=198 stone=30 births=99 deaths=7 built=42 destroyed=0 | faith=26 worship=35 heretics=0 priests=1 shrines=1 temples=0 prayer=170 | deer=64 rabbit=90 wolf=12 bird=12
+[t=242] Ulfheim built a shrine to the god!
 [t=260] Myrvik has grown into a Village!
-[t=264] Eikvald raised a stone house.
-[t=270] Ulfheim has grown into a Town!
-STAT t=  270s pop=102 tribes=8 buildings= 33 trees= 677 rocks=128 bushes=159 fires= 0 food=304 wood=326 stone=148 births=98 deaths=14 built=42 destroyed=0
-[t=300] Hrafnir has grown into a Village!
-STAT t=  300s pop=121 tribes=8 buildings= 38 trees= 660 rocks=122 bushes=157 fires= 0 food=353 wood=415 stone=196 births=122 deaths=19 built=47 destroyed=0
-PASS  sim grows population  18 -> 121
-PASS  sim constructs buildings  built=47
-PASS  raise terrain  8.74 -> 15.48
-PASS  collision follows terrain  collider y=15.58 mesh y=15.48
-PASS  lower terrain  15.48 -> 8.74
-PASS  spawn villagers  121 -> 124
-[t=300] The Bjarkan tribe has settled.
-PASS  spawn far away founds tribe  8 -> 9 tribes
-PASS  sow forest  814 -> 844 plants
-[t=300] Ravnfolk is blessed by the gods.
-PASS  blessed rain  blessed=60 fert 0.00->0.24
-[t=300] Lightning struck down 11 villagers.
-PASS  lightning kills  deaths 19 -> 30
-[t=300] Lightning struck down 1 villager.
-PASS  lightning ignites trees  fires=4
-[t=302] Isgard has grown into a Village!
-[t=303] Myrvik raised a stone house.
-[t=305] The Ravnfolk great hall was destroyed by fire!
-INFO after 10s of fire: fires=3 trees 680 -> 678
-[t=310] The Ulfheim great hall was destroyed by a meteor!
-[t=310] A meteor struck! 8 dead, 5 buildings destroyed.
-PASS  meteor destroys buildings  40 -> 35 buildings
-PASS  meteor crater  height 3.22 -> -3.17
-INFO meteor deaths: 8, fires now: 3
-[t=311] Ulfheim has grown into a Village!
-[t=315] Eikvald raised a stone house.
-[t=315] Eikvald has grown into a Town!
-[t=319] Solbrand raised a stone house.
-STAT t=  320s pop=122 tribes=9 buildings= 36 trees= 678 rocks=121 bushes=157 fires= 0 food=388 wood=420 stone=184 births=139 deaths=41 built=55 destroyed=7
-[t=324] Myrvik raised a stone house.
-[t=325] Hrafnir has grown into a Village!
-STAT t=  330s pop=130 tribes=9 buildings= 39 trees= 675 rocks=121 bushes=154 fires= 0 food=369 wood=435 stone=188 births=148 deaths=42 built=57 destroyed=7
-STAT t=  340s pop=139 tribes=9 buildings= 40 trees= 673 rocks=120 bushes=156 fires= 0 food=389 wood=480 stone=180 births=157 deaths=42 built=59 destroyed=7
-[t=344] Ravnfolk raised a stone house.
-[t=346] Hrafnir has grown into a Village!
-STAT t=  350s pop=145 tribes=9 buildings= 40 trees= 674 rocks=118 bushes=156 fires= 0 food=403 wood=516 stone=198 births=166 deaths=45 built=61 destroyed=7
-[t=354] Bjarkan has grown into a Village!
-[t=359] Solbrand raised a stone house.
-[t=359] Solbrand has grown into a Town!
-STAT t=  361s pop=154 tribes=9 buildings= 44 trees= 667 rocks=116 bushes=153 fires= 0 food=434 wood=513 stone=216 births=177 deaths=47 built=64 destroyed=7
-STAT t=  371s pop=164 tribes=9 buildings= 44 trees= 664 rocks=115 bushes=150 fires= 0 food=458 wood=534 stone=230 births=187 deaths=47 built=66 destroyed=7
-[t=374] Myrvik raised a stone house.
-[t=375] Myrvik has grown into a Town!
-[t=377] Eikvald raised a stone house.
-[t=378] Myrvik has grown into a Village!
-[t=379] Ravnfolk raised a stone house.
-[t=380] Bjarkan raised a stone house.
-[t=385] Myrvik has grown into a Town!
-[t=390] Solbrand raised a stone house.
-STAT t=  401s pop=175 tribes=9 buildings= 45 trees= 646 rocks=108 bushes=139 fires= 0 food=539 wood=650 stone=276 births=208 deaths=57 built=72 destroyed=7
-[t=407] Bjarkan raised a stone house.
-STAT t=  431s pop=187 tribes=9 buildings= 49 trees= 638 rocks=105 bushes=125 fires= 0 food=627 wood=686 stone=320 births=229 deaths=66 built=77 destroyed=7
-[t=433] Eikvald raised a stone house.
-[t=443] Bjarkan raised a stone house.
-[t=443] Bjarkan has grown into a Town!
-[t=446] Solbrand raised a stone house.
-[t=458] Myrvik raised a stone house.
-STAT t=  461s pop=201 tribes=9 buildings= 51 trees= 631 rocks=102 bushes=110 fires= 0 food=670 wood=750 stone=332 births=251 deaths=74 built=83 destroyed=7
-STAT t=  491s pop=217 tribes=9 buildings= 57 trees= 636 rocks= 97 bushes= 76 fires= 0 food=768 wood=757 stone=364 births=276 deaths=83 built=88 destroyed=7
-[t=495] Bjarkan raised a stone house.
-[t=503] Ravnfolk raised a stone house.
-[t=505] Solbrand raised a stone house.
-[t=514] Myrvik raised a stone house.
-STAT t=  521s pop=218 tribes=9 buildings= 58 trees= 622 rocks= 90 bushes= 70 fires= 0 food=755 wood=909 stone=418 births=297 deaths=103 built=94 destroyed=7
-STAT t=  551s pop=227 tribes=9 buildings= 61 trees= 620 rocks= 88 bushes= 65 fires= 0 food=806 wood=979 stone=464 births=320 deaths=117 built=97 destroyed=7
-[t=556] Bjarkan raised a stone house.
-STAT t=  581s pop=231 tribes=9 buildings= 64 trees= 623 rocks= 87 bushes= 72 fires= 0 food=728 wood=1045 stone=464 births=342 deaths=135 built=101 destroyed=7
-[t=610] Isgard raised a stone house.
-STAT t=  611s pop=232 tribes=9 buildings= 66 trees= 629 rocks= 85 bushes= 68 fires= 0 food=780 wood=1062 stone=466 births=365 deaths=157 built=104 destroyed=7
-[t=631] The Ulfheim tribe has perished.
-[t=639] Eikvald raised a stone house.
-STAT t=  641s pop=229 tribes=8 buildings= 66 trees= 630 rocks= 83 bushes= 61 fires= 0 food=747 wood=1048 stone=416 births=383 deaths=178 built=106 destroyed=8
-STAT t=  671s pop=222 tribes=8 buildings= 66 trees= 626 rocks= 83 bushes= 61 fires= 0 food=681 wood=1103 stone=410 births=405 deaths=207 built=106 destroyed=8
-PASS  world still alive after long run  pop=222
-POWER CASTS { "raise": 30, "lower": 30, "villager": 2, "forest": 10, "rain": 1, "lightning": 2, "meteor": 1 }
-AUTOTEST DONE fails=0
-WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
-     at: cleanup (core/object/object.cpp:2284)
+[t=269] Myrvik has grown into a Village!
+[t=269] Ulfheim raised a stone house.
+STAT t=  270s pop=126 tribes=8 buildings= 51 trees= 658 rocks=119 bushes= 77 fires= 0 food=170 wood=262 stone=50 births=121 deaths=13 built=52 destroyed=0 | faith=26 worship=43 heretics=0 priests=1 shrines=2 temples=0 prayer=173 | deer=64 rabbit=83 wolf=14 bird=11
+[t=272] Isgard has grown into a Village!
+[t=275] Eikvald begins a shrine to the god.
+[t=279] Skaldir raised a stone house.
+[t=282] Solbrand begins a shrine to the god.
+[t=284] Eikvald built a shrine to the god!
+[t=287] Hrafnir begins a shrine to the god.
+[t=289] Solbrand built a shrine to the god!
+[t=289] Thorleif became a priest of Solbrand.
+[t=292] Eikvald raised a stone house.
+[t=293] Hrafnir built a shrine to the god!
+[t=294] Vigveig became a priest of Hrafnir.
+[t=296] Ulfheim raised a stone house.
+[t=297] Solbrand raised a stone house.
+STAT t=  300s pop=147 tribes=8 buildings= 58 trees= 649 rocks=115 bushes= 71 fires= 0 food=193 wood=224 stone=58 births=145 deaths=16 built=62 destroyed=0 | faith=27 worship=46 heretics=0 priests=3 shrines=5 temples=0 prayer=176 | deer=65 rabbit=81 wolf=15 bird=13
+PERF 300 s of simulation (3000 steps) took 11570 ms -> 3.86 ms/step at pop 147
+PASS  sim grows population  18 -> 147
+PASS  sim constructs buildings  built=62
+PASS  villagers gather resources  deposits=788
+PASS  settlements progress beyond Camp  ["Village"]
+PASS  villagers are not stuck  stuck=0 of 147
+PASS  pathfinding used  { "paths": 368, "partial": 0, "updates": 50 }
+PASS  raise terrain  4.54 -> 11.30
+PASS  collision follows terrain  collider y=11.28 mesh y=11.30
+PASS  lower terrain  11.30 -> 4.54
+PASS  brush: create land from deep ocean  -14.00 -> 2.03
+PASS  brush: new land is walkable  
+INFO brush biomes: centre=3 edge=1
+PASS  brush: natural beach at the coastline  
+PASS  brush: collider updated on new land  
+PASS  tiles: placed tiles are land  
+PASS  tiles: adjacent tiles connect without gaps  max step between cells 0.09
+PASS  tiles: connected landmass for navigation  
+PASS  tiles: repeated placement extends the shape  
+PASS  remove land: returns to ocean  h=-4.10
+PASS  remove land: splits the landmass  
+PASS  walk: peninsula is land  tip h=1.96
+PASS  walk: peninsula connected to the village  
+[t=305] The Bjarkan tribe has settled.
+[t=305] Settlers from Hrafnir founded Bjarkan.
+[t=310] Skaldir raised a stone house.
+[t=311] Hrafnir raised a stone house.
+PASS  walk: villager walks onto new land  from (-44.10067, 9.264771, -31.31194) to (-73.70037, 1.958082, -10.42319), now (-72.3682, 2.101473, -11.01924)
+PASS  new island: created  
+[t=324] The Torvik tribe has settled.
+[t=324] 3 villagers witnessed a miracle.
+PASS  new island: Create Life founds a settlement  
+[t=326] Skaldir gathers to worship at the shrine.
+[t=326] Famine strikes Ravnfolk!
+[t=327] Karveig became a priest of Eikvald.
+[t=328] Solbrand gathers to worship at the shrine.
+[t=337] Ulfheim raised a stone house.
+[t=337] Ulfheim has grown into a Town!
+[t=338] Skaldir raised a stone house.
+[t=339] Skaldir has grown into a Town!
+[t=340] Eikvald raised a stone house.
+[t=345] Solbrand raised a stone house.
+[t=346] Asrid became a priest of Ulfheim.
+[t=355] Torvik has grown into a Village!
+[t=360] Eikvald gathers to worship at the shrine.
+[t=371] Eikvald raised a stone house.
+[t=372] Eikvald has grown into a Town!
+[t=376] Skaldir raised a stone house.
+[t=386] Hrafnir raised a stone house.
+[t=386] Solbrand raised a stone house.
+[t=387] Solbrand has grown into a Town!
+[t=395] Bjarkan has grown into a Village!
+[t=401] Ulfheim raised a stone house.
+[t=402] Bjarkan begins a shrine to the god.
+[t=404] Ulfa became a priest of Skaldir.
+[t=406] Bjarkan has grown into a Village!
+[t=408] Skaldir raised a stone house.
+[t=409] Famine strikes Myrvik!
+PASS  new island: settlement builds on created land  built=5 buildings=5 pop=13
+PASS  new island: trees grow on new land  0 -> 7
+PASS  hand: hover detects villager  
+PASS  hand: grab villager  hand=2 v=13
+[t=415] Bjarkan built a shrine to the god!
+[t=416] Thorketil became a priest of Bjarkan.
+PASS  hand: carried villager follows the hand  dist 0.01, height above ground 2.10
+PASS  hand: slow release places gently  state=3
+PASS  hand: villager set down alive on ground  dead=false state=1 dist to target 1.80
+PASS  hand: grab second villager  
+PASS  hand: fast release throws  hand speed 56.1 state=14
+[t=418] Asketil was hurled to their death by the god.
+PASS  hand: thrown villager flies and lands  travelled 26.1 m, dead=true
+PASS  hand: hover detects animal  
+[t=419] Famine strikes Torvik!
+PASS  hand: grab deer  state=8
+PASS  hand: deer relocated and released  state=3
+PASS  hand: hover detects tree  
+PASS  hand: uproot tree  
+[t=423] Hrafnir raised a stone house.
+[t=424] Hrafnir has grown into a Town!
+[t=424] The god gave Ravnfolk timber.
+[t=424] 8 villagers witnessed a miracle.
+[t=424] Famine strikes Ravnfolk!
+[t=425] Solbrand raised a stone house.
+PASS  hand: tree dropped in village becomes a gift of wood  wood 4 -> 13
+INFO religion before: { "worshippers": 83, "heretics": 0, "priests": 6, "avg_faith": 29.3323153320438, "shrines": 6, "temples": 0 }
+PASS  prayer: miracles cost prayer power  
+[t=426] Skaldir is blessed by the gods.
+PASS  faith: miracle raises devotion  26.9 -> 31.6
+PASS  prayer: casting spent prayer  prayer=275
+PASS  religion: tribe builds a shrine  shrine=true
+[t=426] Skaldir begins raising a temple.
+[t=433] Famine strikes Isgard!
+[t=440] Skaldir raised a great temple!
+[t=440] Ulfa became a priest of Skaldir.
+[t=441] Famine strikes Myrvik!
+[t=441] Bjorar became a priest of Skaldir.
+[t=449] Eikvald raised a stone house.
+[t=455] Skaldir gathers to worship at the temple.
+[t=457] Eikvald gathers to worship at the shrine.
+PASS  religion: a priest is appointed  
+PASS  religion: villagers gather and worship at the shrine  ceremonies=11
+PASS  religion: worship generates prayer power  +57.7 prayer
+[t=458] Skaldir raised a stone house.
+PASS  religion: shrine upgraded to a temple  shrine type=temple built=true
+INFO religion after: { "worshippers": 117, "heretics": 0, "priests": 7, "avg_faith": 36.8200466731422, "shrines": 5, "temples": 1 }
+INFO heresy target Torvik pop 11
+[t=458] Lightning struck down 1 villager.
+[t=458] Bjorleif of Torvik has turned heretic (kin smitten by the god).
+[t=458] Magar of Torvik has turned heretic (kin smitten by the god).
+[t=458] Yrrun of Torvik has turned heretic (kin smitten by the god).
+[t=458] Karny of Torvik has turned heretic (kin smitten by the god).
+[t=458] Yrmund of Torvik has turned heretic (kin smitten by the god).
+[t=458] Olrid of Torvik has turned heretic (kin smitten by the god).
+PASS  heresy: hardship and smiting create heretics  heretics=6
+PASS  heresy: heretics have understandable causes  ["kin smitten by the god"]
+PASS  heresy: heretics are visibly marked  
+[t=460] Hrafnir raised a stone house.
+[t=465] Famine strikes Bjarkan!
+[t=465] Solbrand raised a stone house.
+[t=483] Eikvald raised a stone house.
+[t=490] Hrafnir raised a stone house.
+[t=490] Famine strikes Myrvik!
+[t=491] Einy of Myrvik has turned heretic (famine).
+[t=500] Skaldir raised a stone house.
+[t=507] Famine strikes Ravnfolk!
+[t=508] A priest of Skaldir sets out to spread the faith to Isgard.
+[t=515] Famine strikes Bjarkan!
+[t=517] Yrgerd became a priest of Skaldir.
+[t=523] Famine strikes Myrvik!
+[t=524] Thora of Myrvik has turned heretic (famine).
+[t=524] Karveig of Myrvik has turned heretic (famine).
+[t=524] Magar of Myrvik has turned heretic (famine).
+[t=524] Olhild of Myrvik has turned heretic (famine).
+[t=524] Ulfketil of Myrvik has turned heretic (famine).
+[t=531] Eikvald raised a stone house.
+[t=540] Famine strikes Ravnfolk!
+[t=540] Magulf of Myrvik has turned heretic (persuaded by heretics).
+PASS  heresy: heretics try to persuade believers  persuasions=1
+[t=540] A miracle of plenty feeds Torvik.
+[t=540] Bjorleif of Torvik returned to the faith (won back by a miracle).
+[t=540] Magar of Torvik returned to the faith (won back by a miracle).
+[t=540] Karny of Torvik returned to the faith (won back by a miracle).
+[t=540] 5 villagers witnessed a miracle (3 heretics won back).
+[t=540] A miracle of plenty feeds Torvik.
+[t=540] A miracle of plenty feeds Torvik.
+PASS  heresy: miracles convert dissenters  heretics 5 -> 1
+[t=541] Ulfketil was hurled to their death by the god.
+[t=541] Karveig of Myrvik returned to the faith (cowed by divine punishment).
+[t=541] Magar of Myrvik returned to the faith (cowed by divine punishment).
+PASS  heresy: a heretic can be punished with the hand  dead=true
+INFO heresy stats { "conversions": 6, "heresies": 13, "recants": 6, "ceremonies": 14, "missions": 1, "schisms": 0, "sermons": 32, "persuasions": 1 }
+STAT t=  543s pop=244 tribes=10 buildings= 81 trees= 590 rocks= 83 bushes= 33 fires= 0 food=510 wood=1241 stone=392 births=346 deaths=126 built=108 destroyed=0 | faith=37 worship=141 heretics=5 priests=7 shrines=5 temples=1 prayer=490 | deer=41 rabbit=83 wolf=12 bird=16
+[t=556] Solbrand gathers to worship at the shrine.
+[t=561] Torvik has grown into a Village!
+[t=565] Gunrid became a priest of Hrafnir.
+[t=565] Famine strikes Isgard!
+[t=570] Thorveig became a priest of Solbrand.
+[t=573] Famine strikes Myrvik!
+[t=581] Eikvald gathers to worship at the shrine.
+[t=598] Famine strikes Isgard!
+STAT t=  603s pop=243 tribes=10 buildings= 83 trees= 578 rocks= 83 bushes= 26 fires= 0 food=579 wood=1461 stone=434 births=399 deaths=180 built=111 destroyed=0 | faith=37 worship=147 heretics=4 priests=7 shrines=5 temples=1 prayer=600 | deer=47 rabbit=61 wolf=10 bird=13
+[t=610] A priest of Skaldir sets out to spread the faith to Isgard.
+[t=622] Famine strikes Ravnfolk!
+[t=627] A missionary from Skaldir preached to 4 villagers of Isgard.
+[t=639] Helveig of Ravnfolk has turned heretic (famine).
+[t=643] Siga became a priest of Eikvald.
+[t=646] Ulfveig became a priest of Eikvald.
+[t=647] Famine strikes Bjarkan!
+[t=652] Hrafnir raised a stone house.
+[t=653] Ingvald became a priest of Ulfheim.
+[t=656] Eihild of Ravnfolk has turned heretic (famine).
+[t=656] Yrulf of Ravnfolk has turned heretic (famine).
+[t=661] Famine strikes Hrafnir!
+STAT t=  663s pop=242 tribes=10 buildings= 84 trees= 570 rocks= 80 bushes= 22 fires= 0 food=392 wood=1671 stone=478 births=450 deaths=232 built=113 destroyed=0 | faith=33 worship=129 heretics=5 priests=7 shrines=5 temples=1 prayer=600 | deer=44 rabbit=59 wolf=9 bird=11
+[t=665] Bjarkan gathers to worship at the shrine.
+[t=678] Ulfa became a priest of Solbrand.
+[t=679] Sigar of Ravnfolk has turned heretic (persuaded by heretics).
+[t=689] Ravnfolk begins a shrine to the god.
+[t=690] Ulfheim raised a stone house.
+[t=691] Thorda of Ravnfolk has turned heretic (persuaded by heretics).
+[t=697] Famine strikes Isgard!
+[t=697] Solbrand raised a stone house.
+[t=700] Ravnfolk built a shrine to the god!
+[t=703] Ulfheim gathers to worship at the shrine.
+[t=704] Vigmund of Ravnfolk has turned heretic (persuaded by heretics).
+[t=704] Eistein became a priest of Solbrand.
+[t=705] Famine strikes Myrvik!
+[t=708] Lifda became a priest of Skaldir.
+[t=711] Famine strikes Hrafnir!
+[t=713] Astar of Bjarkan has turned heretic (famine).
+[t=713] Asvald became a priest of Bjarkan.
+[t=714] Asrun of Isgard has turned heretic (famine).
+[t=715] Magleif became a priest of Skaldir.
+[t=719] Skaldir raised a stone house.
+[t=721] Famine strikes Ravnfolk!
+STAT t=  723s pop=236 tribes=10 buildings= 87 trees= 565 rocks= 79 bushes= 27 fires= 0 food=299 wood=1795 stone=470 births=499 deaths=287 built=118 destroyed=0 | faith=31 worship=119 heretics=5 priests=7 shrines=6 temples=1 prayer=600 | deer=40 rabbit=46 wolf=6 bird=12
+[t=731] Olulf of Isgard has turned heretic (famine).
+[t=733] Freyketil became a priest of Ulfheim.
+[t=743] Ragulf of Myrvik has turned heretic (famine).
+[t=743] Magketil of Myrvik has turned heretic (famine).
+[t=743] Bjarkan has grown into a Village!
+[t=746] Karrun became a priest of Skaldir.
+[t=747] Kara of Isgard has turned heretic (famine).
+[t=747] Eidis of Isgard has turned heretic (famine).
+[t=750] Yrvald of Bjarkan has turned heretic (persuaded by heretics).
+[t=754] A priest of Skaldir sets out to spread the faith to Isgard.
+[t=755] Karulf of Myrvik has turned heretic (famine).
+[t=755] Ingbjorn of Myrvik has turned heretic (famine).
+[t=755] Ingrun of Myrvik has turned heretic (famine).
+[t=755] Vigny of Myrvik has turned heretic (famine).
+[t=755] Asrun of Myrvik has turned heretic (famine).
+[t=757] Olda became a priest of Skaldir.
+[t=757] Ingda became a priest of Bjarkan.
+[t=766] Gunleif became a priest of Ravnfolk.
+[t=766] Bjarkan has grown into a Village!
+[t=767] A missionary from Skaldir preached to 1 villagers of Isgard.
+[t=768] Lifda became a priest of Hrafnir.
+[t=771] Viggerd of Myrvik has turned heretic (famine).
+[t=771] Thorveig of Myrvik has turned heretic (famine).
+[t=771] Ulfny of Myrvik has turned heretic (famine).
+[t=771] Helar of Myrvik has turned heretic (famine).
+[t=771] Eiulf of Myrvik has turned heretic (famine).
+[t=771] Magveig of Myrvik has turned heretic (famine).
+[t=771] Yrdis of Myrvik has turned heretic (famine).
+[t=771] Ragulf of Myrvik has turned heretic (famine).
+[t=777] Dagny became a priest of Skaldir.
+[t=779] Karny became a priest of Solbrand.
+[t=780] Asveig became a priest of Skaldir.
+STAT t=  783s pop=237 tribes=10 buildings= 88 trees= 554 rocks= 76 bushes= 28 fires= 0 food=260 wood=2022 stone=482 births=544 deaths=331 built=120 destroyed=0 | faith=29 worship=95 heretics=18 priests=8 shrines=6 temples=1 prayer=600 | deer=37 rabbit=47 wolf=7 bird=13
+[t=787] Dagda of Myrvik has turned heretic (persuaded by heretics).
+[t=787] Famine strikes Ravnfolk!
+[t=788] Heldis of Ravnfolk has turned heretic (famine).
+[t=789] Ravnfolk gathers to worship at the shrine.
+[t=789] Olstein became a priest of Skaldir.
+[t=794] Lifulf became a priest of Skaldir.
+[t=802] Astar of Bjarkan returned to the faith (persuaded by the priest).
+[t=803] Freyketil became a priest of Eikvald.
+[t=804] Famine strikes Myrvik!
+[t=804] Halny of Myrvik has turned heretic (famine).
+[t=804] Karmund of Myrvik has turned heretic (famine).
+[t=812] Famine strikes Bjarkan!
+[t=813] Dagvald became a priest of Skaldir.
+[t=814] Famine strikes Torvik!
+[t=814] Asar became a priest of Solbrand.
+[t=815] Dagar of Myrvik has turned heretic (persuaded by heretics).
+[t=826] Ulfheim raised a stone house.
+[t=837] Famine strikes Ravnfolk!
+[t=837] Famine strikes Myrvik!
+INFO eco { "born": 519, "died": 450, "predation": 103, "hunted": 159, "starved": 40 } -> { "born": 747, "died": 727, "predation": 145, "hunted": 316, "starved": 63 }, counts { "deer": 41, "rabbit": 83, "wolf": 12, "bird": 16 } -> { "deer": 32, "rabbit": 49, "wolf": 6, "bird": 16 }
+PASS  ecosystem: animals reproduce  born 228
+PASS  ecosystem: wolves hunt prey  kills 42
+PASS  ecosystem: villagers hunt wildlife  hunted 157
+PASS  ecosystem: animals die naturally / environmentally  
+PASS  ecosystem: populations stay bounded  { "deer": 32, "rabbit": 49, "wolf": 6, "bird": 16 }
+PASS  ecosystem: birds fly  airborne birds=9
+[t=842] 15 villagers witnessed a miracle.
+PASS  power: Create Life (villagers)  229 -> 232
+PASS  power: Create Life (animals)  32 -> 34
+PASS  power: Sow Forest  
+[t=842] Ravnfolk is blessed by the gods.
+PASS  power: Blessed Rain  
+[t=842] A miracle of plenty feeds Ravnfolk in its hour of need.
+PASS  power: Miracle of Plenty  13 -> 74
+[t=842] Lightning struck down 1 villager.
+PASS  power: Lightning kills  
+PASS  power: Lightning ignites trees  fires=10
+[t=842] The Ulfheim great hall was destroyed by a meteor!
+[t=842] The Ulfheim shrine was destroyed by a meteor!
+[t=842] A meteor struck! 8 dead, 6 buildings destroyed.
+[t=842] Skaldir is blessed by the gods.
+PASS  power: Meteor destroys buildings  88 -> 82
+PASS  power: Meteor crater  
+[t=848] Ulfheim has grown into a Village!
+[t=865] Ravnfolk begins raising a temple.
+[t=874] Ravnfolk raised a great temple!
+[t=875] Gunleif became a priest of Ravnfolk.
+[t=875] Thorulf became a priest of Skaldir.
+[t=876] Karny became a priest of Ravnfolk.
+[t=876] Famine strikes Hrafnir!
+[t=877] Gunrid became a priest of Skaldir.
+[t=878] A priest of Skaldir sets out to spread the faith to Isgard.
+[t=878] Eiulf of Bjarkan has turned heretic (famine).
+[t=880] Lifleif of Torvik has turned heretic (famine).
+[t=880] Asmund of Torvik has turned heretic (famine).
+[t=880] Yrulf of Torvik has turned heretic (famine).
+[t=880] Dagleif of Torvik has turned heretic (famine).
+[t=880] Halulf of Torvik has turned heretic (famine).
+[t=880] Magny of Torvik has turned heretic (famine).
+[t=880] Sigar of Torvik has turned heretic (famine).
+[t=880] Hala of Torvik has turned heretic (famine).
+[t=880] Kara of Torvik has turned heretic (famine).
+[t=880] Gunar of Torvik has turned heretic (famine).
+[t=880] Astrid of Torvik has turned heretic (famine).
+[t=880] Helbjorn of Torvik has turned heretic (famine).
+[t=880] Sighild of Torvik has turned heretic (famine).
+[t=880] Magketil of Torvik has turned heretic (famine).
+[t=880] Gunrun of Torvik has turned heretic (famine).
+[t=880] Magdis of Torvik has turned heretic (famine).
+[t=880] Eidis of Torvik has turned heretic (famine).
+[t=880] Thorstein of Torvik has turned heretic (famine).
+[t=882] Thorleif became a priest of Skaldir.
+[t=886] A missionary from Skaldir preached to 2 villagers of Isgard.
+[t=886] Famine strikes Ulfheim!
+[t=888] Hela became a priest of Skaldir.
+[t=891] Thorvald of Torvik has turned heretic (persuaded by heretics).
+[t=892] Myrvik has grown into a Village!
+[t=895] Astmund of Bjarkan has turned heretic (famine).
+[t=899] Olketil of Torvik has turned heretic (persuaded by heretics).
+[t=903] Famine strikes Skaldir!
+PASS  power: every power was cast  ["raise", "lower", "land", "remove", "villager", "forest", "rain", "lightning", "plenty", "meteor"]
+PASS  speed: pause stops the simulation  
+PASS  speed: 4x advances the simulation 4x  dt=0.40
+[t=906] Signy of Torvik has turned heretic (persuaded by heretics).
+[t=911] Thorrun became a priest of Bjarkan.
+[t=919] Magvald of Torvik has turned heretic (persuaded by heretics).
+[t=919] Famine strikes Myrvik!
+[t=926] Ravnfolk raised a stone house.
+[t=929] Famine strikes Torvik!
+[t=931] Eikvald gathers to worship at the shrine.
+[t=933] Bjarkan has grown into a Village!
+[t=936] Famine strikes Skaldir!
+[t=936] Bjorbjorn of Ulfheim has turned heretic (famine).
+[t=936] Bjorny of Ulfheim has turned heretic (famine).
+[t=936] Gunar of Ulfheim has turned heretic (famine).
+[t=937] Olrid of Torvik has turned heretic (persuaded by heretics).
+STAT t=  943s pop=231 tribes=10 buildings= 80 trees= 419 rocks= 71 bushes= 44 fires= 0 food=191 wood=2394 stone=504 births=667 deaths=463 built=123 destroyed=9 | faith=35 worship=131 heretics=30 priests=8 shrines=4 temples=2 prayer=600 | deer=23 rabbit=30 wolf=9 bird=22
+[t=944] Ravnfolk raised a stone house.
+[t=946] A priest of Ravnfolk sets out to spread the faith to Myrvik.
+[t=951] Astrun of Torvik has turned heretic (persuaded by heretics).
+[t=952] Bjarkan has grown into a Village!
+[t=953] Haldis of Ulfheim has turned heretic (famine).
+[t=966] Ravnfolk raised a stone house.
+[t=966] Ravnfolk has grown into a Town!
+[t=966] Myrvik has grown into a Village!
+[t=969] Sigleif of Ulfheim has turned heretic (famine).
+[t=969] Gunleif of Ulfheim has turned heretic (famine).
+[t=969] Ulfketil of Ulfheim has turned heretic (famine).
+[t=970] Asstein of Torvik has turned heretic (persuaded by heretics).
+[t=977] Famine strikes Bjarkan!
+[t=983] Karny of Ulfheim has turned heretic (famine).
+[t=986] Yrrun of Ulfheim has turned heretic (famine).
+[t=986] Karvald of Ulfheim has turned heretic (famine).
+[t=986] Thorbjorn of Ulfheim has turned heretic (famine).
+[t=986] Asleif of Ulfheim has turned heretic (famine).
+[t=988] A missionary from Ravnfolk preached to 4 villagers of Myrvik.
+[t=998] Ravnfolk gathers to worship at the temple.
+[t=1002] Yrvald of Ulfheim has turned heretic (famine).
+[t=1007] Bjarkan gathers to worship at the shrine.
+[t=1022] Ravnfolk raised a stone house.
+[t=1026] Famine strikes Bjarkan!
+[t=1028] Yrstein of Torvik has turned heretic (persuaded by heretics).
+[t=1030] Hrafnir gathers to worship at the shrine.
+[t=1036] Thorrun became a priest of Hrafnir.
+[t=1052] Ragny became a priest of Skaldir.
+[t=1060] Yrveig of Bjarkan has turned heretic (famine).
+STAT t= 1063s pop=206 tribes=10 buildings= 80 trees= 391 rocks= 61 bushes= 42 fires= 0 food=159 wood=2652 stone=566 births=744 deaths=565 built=126 destroyed=9 | faith=33 worship=107 heretics=8 priests=8 shrines=4 temples=2 prayer=600 | deer=15 rabbit=22 wolf=10 bird=17
+[t=1066] Ravnfolk raised a stone house.
+[t=1078] Ragny became a priest of Ravnfolk.
+[t=1082] Famine strikes Solbrand!
+[t=1084] Famine strikes Skaldir!
+[t=1085] Ragstein became a priest of Solbrand.
+[t=1093] Asmund became a priest of Eikvald.
+[t=1093] Famine strikes Isgard!
+[t=1098] A priest of Ravnfolk sets out to spread the faith to Myrvik.
+[t=1099] Sigulf became a priest of Skaldir.
+[t=1115] Famine strikes Solbrand!
+[t=1118] Ulfleif became a priest of Ravnfolk.
+[t=1118] Ulfda of Skaldir has turned heretic (famine).
+[t=1134] Lifleif of Skaldir has turned heretic (famine).
+[t=1134] Yrstein of Skaldir has turned heretic (famine).
+[t=1134] Magbjorn of Skaldir has turned heretic (famine).
+[t=1134] Vigketil became a priest of Skaldir.
+[t=1135] A priest of Skaldir sets out to spread the faith to Isgard.
+[t=1139] Yrstein of Skaldir returned to the faith (persuaded by the priest).
+[t=1143] Ravnfolk raised a stone house.
+[t=1156] Magbjorn became a priest of Ravnfolk.
+[t=1157] A missionary from Skaldir preached to 1 villagers of Isgard.
+[t=1163] Wolves killed Ragny of Myrvik!
+[t=1164] Ravnfolk gathers to worship at the temple.
+[t=1164] Maga became a priest of Solbrand.
+[t=1164] Famine strikes Solbrand!
+[t=1173] The Ulfheim tribe has perished.
+[t=1175] The Ravnfolk tribe has settled.
+[t=1175] Settlers from Ravnfolk founded Ravnfolk.
+[t=1176] Lifleif of Skaldir returned to the faith (persuaded by the priest).
+STAT t= 1183s pop=174 tribes=10 buildings= 80 trees= 362 rocks= 53 bushes= 49 fires= 0 food=123 wood=2946 stone=568 births=796 deaths=649 built=128 destroyed=10 | faith=30 worship=78 heretics=4 priests=7 shrines=4 temples=2 prayer=600 | deer=10 rabbit=23 wolf=12 bird=14
+[t=1186] Gundis became a priest of Ravnfolk.
+[t=1189] Gunulf became a priest of Ravnfolk.
+[t=1189] Famine strikes Hrafnir!
+[t=1191] Wolves killed Bjorstein of Ravnfolk!
+[t=1202] Wolves killed Sigbjorn of Ravnfolk!
+[t=1203] Wolves killed Asta of Ravnfolk!
+[t=1210] Heldis of Torvik has turned heretic (persuaded by heretics).
+[t=1214] Ulfa became a priest of Ravnfolk.
+[t=1223] A priest of Ravnfolk sets out to spread the faith to Myrvik.
+[t=1234] Wolves killed Dagda of Ravnfolk!
+[t=1235] A priest of Skaldir sets out to spread the faith to Hrafnir.
+[t=1241] Helvald became a priest of Skaldir.
+[t=1242] Ingketil became a priest of Eikvald.
+[t=1247] Astrun of Torvik has turned heretic (persuaded by heretics).
+[t=1247] Famine strikes Solbrand!
+[t=1248] Olny became a priest of Ravnfolk.
+[t=1249] Torvik has grown into a Village!
+[t=1250] Magbjorn became a priest of Skaldir.
+[t=1262] Sigveig became a priest of Ravnfolk.
+[t=1265] Torvik has grown into a Village!
+[t=1276] Torvik has grown into a Village!
+[t=1283] Ragda became a priest of Hrafnir.
+[t=1288] Famine strikes Hrafnir!
+[t=1295] Asleif became a priest of Skaldir.
+[t=1296] Famine strikes Solbrand!
+STAT t= 1303s pop=162 tribes=10 buildings= 81 trees= 347 rocks= 47 bushes= 65 fires= 0 food=77 wood=3248 stone=644 births=870 deaths=735 built=130 destroyed=10 | faith=29 worship=66 heretics=3 priests=7 shrines=4 temples=2 prayer=600 | deer=6 rabbit=18 wolf=11 bird=17
+[t=1309] Famine strikes Torvik!
+[t=1323] Famine strikes Bjarkan!
+[t=1324] Helrid of Torvik has turned heretic (persuaded by heretics).
+[t=1326] Myrvik begins a shrine to the god.
+[t=1329] Solbrand gathers to worship at the shrine.
+[t=1335] Ravnfolk gathers to worship at the temple.
+[t=1337] Myrvik built a shrine to the god!
+[t=1338] Famine strikes Hrafnir!
+[t=1343] Thordis of Torvik has turned heretic (persuaded by heretics).
+[t=1346] Olvald became a priest of Myrvik.
+[t=1356] Ravnfolk has grown into a Village!
+[t=1365] Famine strikes Myrvik!
+[t=1368] Freyrid of Torvik has turned heretic (persuaded by heretics).
+[t=1369] Famine strikes Ravnfolk!
+[t=1377] Torvik has grown into a Village!
+[t=1384] Halulf of Torvik has turned heretic (persuaded by heretics).
+[t=1395] Famine strikes Solbrand!
+[t=1396] Famine strikes Eikvald!
+[t=1398] Famine strikes Myrvik!
+[t=1419] Skaldir gathers to worship at the temple.
+[t=1421] Bjarkan has grown into a Village!
+[t=1422] Famine strikes Bjarkan!
+[t=1423] Famine strikes Isgard!
+STAT t= 1423s pop=173 tribes=10 buildings= 83 trees= 325 rocks= 42 bushes= 73 fires= 0 food=97 wood=3562 stone=680 births=948 deaths=802 built=132 destroyed=10 | faith=29 worship=72 heretics=6 priests=8 shrines=5 temples=2 prayer=600 | deer=6 rabbit=23 wolf=9 bird=14
+[t=1429] Asvald became a priest of Skaldir.
+[t=1435] Famine strikes Ravnfolk!
+[t=1438] Solbrand gathers to worship at the shrine.
+[t=1438] Ragveig of Torvik has turned heretic (persuaded by heretics).
+[t=1440] Vigrid became a priest of Skaldir.
+[t=1457] Famine strikes Torvik!
+[t=1461] Yra of Torvik has turned heretic (persuaded by heretics).
+[t=1461] A priest of Ravnfolk sets out to spread the faith to Ravnfolk.
+[t=1468] Bjorhild became a priest of Solbrand.
+[t=1468] Famine strikes Ravnfolk!
+[t=1470] Bjarkan has grown into a Village!
+[t=1477] Ravnfolk has grown into a Village!
+[t=1478] Astketil became a priest of Ravnfolk.
+[t=1480] A missionary from Ravnfolk preached to 7 villagers of Ravnfolk.
+[t=1490] Karda became a priest of Hrafnir.
+[t=1494] Magveig became a priest of Skaldir.
+[t=1494] Myrvik gathers to worship at the shrine.
+[t=1494] Famine strikes Solbrand!
+[t=1495] Famine strikes Eikvald!
+[t=1496] Eidis of Torvik has turned heretic (persuaded by heretics).
+[t=1507] Famine strikes Torvik!
+[t=1518] Famine strikes Ravnfolk!
+[t=1521] Famine strikes Bjarkan!
+[t=1522] Thorgerd of Torvik has turned heretic (persuaded by heretics).
+STAT t= 1543s pop=178 tribes=10 buildings= 84 trees= 336 rocks= 36 bushes= 80 fires= 0 food=155 wood=3660 stone=738 births=1019 deaths=868 built=133 destroyed=10 | faith=29 worship=74 heretics=6 priests=8 shrines=5 temples=2 prayer=600 | deer=8 rabbit=69 wolf=10 bird=13
+[t=1547] Thorda became a priest of Skaldir.
+[t=1549] Asny became a priest of Ravnfolk.
+[t=1553] Inggerd became a priest of Eikvald.
+[t=1555] Maggerd of Torvik has turned heretic (persuaded by heretics).
+[t=1563] Freyveig became a priest of Ravnfolk.
+[t=1567] Famine strikes Ravnfolk!
+[t=1573] Famine strikes Torvik!
+[t=1588] Halbjorn of Torvik has turned heretic (persuaded by heretics).
+[t=1593] Bjarkan has grown into a Village!
+[t=1597] Karny of Torvik has turned heretic (persuaded by heretics).
+[t=1606] Helrid of Torvik has turned heretic (famine).
+[t=1606] Halhild of Torvik has turned heretic (famine).
+[t=1608] Eikvald gathers to worship at the shrine.
+[t=1612] Ulfny became a priest of Bjarkan.
+[t=1613] Freya of Torvik has turned heretic (persuaded by heretics).
+[t=1616] Lifketil became a priest of Skaldir.
+[t=1617] Myrvik gathers to worship at the shrine.
+[t=1626] Halhild of Torvik has turned heretic (persuaded by heretics).
+[t=1637] Famine strikes Bjarkan!
+[t=1639] Famine strikes Torvik!
+[t=1639] Yra of Torvik has turned heretic (persuaded by heretics).
+[t=1648] Ravnfolk has grown into a Village!
+[t=1658] Astbjorn became a priest of Ravnfolk.
+[t=1658] Dagveig of Torvik has turned heretic (persuaded by heretics).
+[t=1659] Gundis became a priest of Myrvik.
+STAT t= 1663s pop=183 tribes=10 buildings= 84 trees= 339 rocks= 31 bushes=100 fires= 0 food=160 wood=3801 stone=808 births=1097 deaths=941 built=133 destroyed=10 | faith=29 worship=85 heretics=10 priests=9 shrines=5 temples=2 prayer=600 | deer=22 rabbit=72 wolf=10 bird=15
+[t=1666] Solbrand gathers to worship at the shrine.
+[t=1672] Famine strikes Torvik!
+[t=1684] Bjarkan has grown into a Village!
+[t=1695] Karda became a priest of Solbrand.
+[t=1716] Famine strikes Ravnfolk!
+[t=1716] Karstein became a priest of Ravnfolk.
+[t=1719] Famine strikes Bjarkan!
+[t=1719] Torvik has grown into a Village!
+[t=1738] Myrvik gathers to worship at the shrine.
+[t=1742] Famine strikes Solbrand!
+[t=1744] Famine strikes Ravnfolk!
+[t=1744] Bjarkan has grown into a Village!
+[t=1746] Skaldir gathers to worship at the temple.
+[t=1750] Lifdis became a priest of Skaldir.
+[t=1750] Famine strikes Hrafnir!
+[t=1752] Famine strikes Bjarkan!
+[t=1753] Raghild became a priest of Ravnfolk.
+[t=1753] Famine strikes Isgard!
+[t=1754] Famine strikes Torvik!
+[t=1761] Vigveig became a priest of Ravnfolk.
+[t=1765] Famine strikes Ravnfolk!
+[t=1770] Lifleif became a priest of Ravnfolk.
+[t=1771] Eiketil became a priest of Ravnfolk.
+[t=1773] Helulf became a priest of Hrafnir.
+STAT t= 1783s pop=184 tribes=10 buildings= 85 trees= 330 rocks= 26 bushes=102 fires= 0 food=97 wood=4034 stone=848 births=1181 deaths=1024 built=134 destroyed=10 | faith=30 worship=88 heretics=3 priests=9 shrines=5 temples=2 prayer=600 | deer=20 rabbit=51 wolf=8 bird=17
+[t=1792] Thorny became a priest of Hrafnir.
+[t=1798] Famine strikes Ravnfolk!
+[t=1799] Thormund of Ravnfolk has turned heretic (famine).
+[t=1801] Asveig became a priest of Eikvald.
+[t=1808] Famine strikes Solbrand!
+[t=1822] Siggerd became a priest of Ravnfolk.
+[t=1827] Famine strikes Ravnfolk!
+[t=1827] Famine strikes Myrvik!
+[t=1831] Famine strikes Ravnfolk!
+[t=1832] Helgerd of Ravnfolk has turned heretic (famine).
+[t=1832] Dagdis of Ravnfolk has turned heretic (famine).
+[t=1833] Famine strikes Hrafnir!
+[t=1838] Gunrid became a priest of Eikvald.
+[t=1854] Torvik has grown into a Village!
+[t=1858] Famine strikes Eikvald!
+[t=1860] Famine strikes Myrvik!
+[t=1862] Bjarkan has grown into a Village!
+[t=1866] Myrvik gathers to worship at the shrine.
+[t=1868] Famine strikes Bjarkan!
+[t=1870] Famine strikes Torvik!
+[t=1876] Sigar of Ravnfolk has turned heretic (persuaded by heretics).
+[t=1886] Asstein became a priest of Skaldir.
+[t=1899] Famine strikes Hrafnir!
+[t=1902] Eimund became a priest of Hrafnir.
+STAT t= 1903s pop=188 tribes=10 buildings= 85 trees= 326 rocks= 22 bushes=103 fires= 0 food=95 wood=4163 stone=880 births=1259 deaths=1098 built=134 destroyed=10 | faith=30 worship=86 heretics=5 priests=8 shrines=5 temples=2 prayer=600 | deer=26 rabbit=31 wolf=6 bird=17
+[t=1907] Famine strikes Eikvald!
+[t=1908] Lifda became a priest of Skaldir.
+[t=1909] Ulfrun of Ravnfolk has turned heretic (persuaded by heretics).
+[t=1913] Ulfvald became a priest of Bjarkan.
+[t=1914] Famine strikes Ravnfolk!
+[t=1914] Helgerd became a priest of Solbrand.
+[t=1923] Famine strikes Solbrand!
+[t=1925] Ravnfolk gathers to worship at the temple.
+[t=1936] Isgard has grown into a Village!
+[t=1940] Famine strikes Eikvald!
+[t=1942] Famine strikes Myrvik!
+[t=1947] Astmund of Ravnfolk has turned heretic (famine).
+[t=1948] Karleif became a priest of Skaldir.
+[t=1948] Famine strikes Hrafnir!
+[t=1949] Lifulf became a priest of Ravnfolk.
+[t=1951] Famine strikes Isgard!
+[t=1952] Famine strikes Torvik!
+[t=1954] Isgard has grown into a Village!
+[t=1958] Halgerd became a priest of Myrvik.
+[t=1958] Yrgerd of Ravnfolk has turned heretic (persuaded by heretics).
+[t=1960] Vigbjorn of Ravnfolk has turned heretic (persuaded by heretics).
+[t=1973] Famine strikes Solbrand!
+[t=1978] Halhild became a priest of Skaldir.
+[t=1979] Sigar of Ravnfolk has turned heretic (persuaded by heretics).
+[t=1980] Bjorstein of Ravnfolk has turned heretic (famine).
+[t=1986] Olketil became a priest of Skaldir.
+[t=1992] Famine strikes Ravnfolk!
+[t=1992] Solbrand gathers to worship at the shrine.
+[t=1998] Isgard has grown into a Village!
+[t=2002] Yrrun of Torvik has turned heretic (famine).
+[t=2002] Eia of Torvik has turned heretic (famine).
+[t=2015] Myrvik has grown into a Village!
+[t=2016] Bjarkan has grown into a Village!
+[t=2017] Eivald of Torvik has turned heretic (persuaded by heretics).
+[t=2019] Gunulf became a priest of Ravnfolk.
+STAT t= 2023s pop=163 tribes=10 buildings= 85 trees= 283 rocks= 20 bushes=122 fires= 0 food=160 wood=4532 stone=912 births=1322 deaths=1186 built=134 destroyed=10 | faith=30 worship=73 heretics=8 priests=9 shrines=5 temples=2 prayer=600 | deer=23 rabbit=58 wolf=6 bird=16
+[t=2041] Famine strikes Myrvik!
+[t=2046] Famine strikes Ravnfolk!
+[t=2049] Famine strikes Bjarkan!
+[t=2050] Famine strikes Isgard!
+[t=2059] Halrun became a priest of Ravnfolk.
+[t=2062] Myrvik has grown into a Village!
+[t=2064] Famine strikes Hrafnir!
+[t=2072] Halvald became a priest of Skaldir.
+[t=2074] Lifhild became a priest of Bjarkan.
+[t=2074] Famine strikes Myrvik!
+[t=2085] A priest of Skaldir sets out to spread the faith to Isgard.
+[t=2089] Ragrun became a priest of Ravnfolk.
+[t=2094] Yrulf became a priest of Ravnfolk.
+[t=2095] Bjarkan has grown into a Village!
+[t=2096] A missionary from Skaldir preached to 0 villagers of Isgard.
+[t=2097] A priest of Ravnfolk sets out to spread the faith to Ravnfolk.
+[t=2099] Famine strikes Bjarkan!
+[t=2100] Solbrand gathers to worship at the shrine.
+[t=2102] Hrafnir gathers to worship at the shrine.
+PERF long run: 1200 s of simulation took 64045 ms (5.34 ms/step), pop 166, animals 111
+PASS  long run: world still alive  pop=166
+PASS  long run: population capped  
+PASS  long run: wildlife survives  animals=111
+[t=2103] Skaldir is blessed by the gods.
+[t=2103] Ravnfolk is blessed by the gods.
+INFO sim children by class { "MultiMeshInstance3D": 5, "MeshInstance3D": 85, "Node3D": 169, "CPUParticles3D": 1 }
+INFO sim child nodes 260, fires 0, props 0
+PASS  long run: no node leak  nodes=260
+POWER CASTS { "raise": 30, "lower": 30, "land": 201, "remove": 60, "villager": 4, "forest": 16, "rain": 2, "lightning": 3, "plenty": 4, "meteor": 1 }
+HAND STATS { "grabs": 4, "throws": 1, "places": 3, "pans": 0, "clicks": 0, "gifts": 0 }
+RELIGION STATS { "conversions": 10, "heresies": 123, "recants": 10, "ceremonies": 111, "missions": 12, "schisms": 0, "sermons": 334, "persuasions": 148 }
+ECO STATS { "born": 1548, "died": 1522, "predation": 294, "hunted": 741, "starved": 142 } causes { "rabbit_wolves": 239, "rabbit_hunted": 545, "rabbit_old age": 148, "deer_wolves": 50, "bird_old age": 107, "deer_hunted": 196, "rabbit_starvation": 112, "deer_old age": 46, "wolf_old age": 49, "deer_starvation": 21, "wolf_starvation": 9 }
+NAV STATS { "paths": 10817, "partial": 0, "updates": 93 }
+AUTOTEST DONE passes=81 fails=0 (123.0s)
+WARNING: 98 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

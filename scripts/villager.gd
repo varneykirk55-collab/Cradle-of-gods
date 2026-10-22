@@ -7,11 +7,11 @@ extends Node3D
 ## procedural poses, and carries faith / resentment for the religion system.
 
 enum S { IDLE, TO_RES, GATHER, RETURN, TO_BUILD, BUILD, WANDER, TO_WORSHIP, WORSHIP, PREACH, TALK,
-	HUNT, FLEE, CARRIED, FLYING, STUNNED, MISSION }
+	HUNT, FLEE, CARRIED, FLYING, STUNNED, MISSION, CHEER }
 
 const STATE_NAMES := ["idle", "fetching", "gathering", "carrying home", "going to build", "building", "wandering",
 	"going to worship", "worshipping", "seeking someone", "preaching", "hunting", "fleeing", "held by the god",
-	"flying through the air", "dazed", "on a mission"]
+	"flying through the air", "dazed", "on a mission", "celebrating"]
 const CARRY_MEAT := 3
 const NAME_A := ["As", "Bjor", "Ei", "Frey", "Gun", "Hal", "Ing", "Kar", "Lif", "Mag", "Ol", "Rag", "Sig", "Thor", "Ulf", "Vig", "Yr", "Ast", "Dag", "Hel"]
 const NAME_B := ["a", "rid", "dis", "vald", "mund", "ny", "ar", "bjorn", "hild", "leif", "run", "stein", "ulf", "veig", "da", "ny", "gerd", "ketil"]
@@ -313,6 +313,12 @@ func _tick(dt: float) -> void:
 			_set_pose_panic()
 			if timer <= 0.0:
 				_reset(0.5)
+		S.CHEER:
+			timer -= dt
+			_face(threat, dt)
+			_set_pose_cheer()
+			if timer <= 0.0:
+				_reset(0.2)
 		S.STUNNED:
 			timer -= dt
 			_target_pose({"lie": -1.45, "lift": 0.05, "arm_lz": 1.2, "arm_rz": -1.2, "leg_l": -0.2, "leg_r": 0.2})
@@ -589,6 +595,25 @@ func _set_pose_preach() -> void:
 func _set_pose_throw() -> void:
 	phase += 0.2
 	_target_pose({"arm_r": -2.6 + sin(phase) * 0.9, "arm_l": -1.0, "torso": 0.15, "leg_l": -0.4, "leg_r": 0.35})
+
+func _set_pose_cheer() -> void:
+	phase += 0.22
+	var j := absf(sin(phase))
+	_target_pose({"arm_l": -2.9 + sin(phase) * 0.25, "arm_r": -2.9 - sin(phase) * 0.25, "arm_lz": 0.45, "arm_rz": -0.45,
+		"lift": j * 0.18, "leg_l": -j * 0.4, "leg_r": -j * 0.4, "head": -0.3})
+
+## Visible reaction to a divine act seen nearby.
+func react(kind: String, at: Vector3) -> void:
+	if state in [S.CARRIED, S.FLYING, S.STUNNED, S.WORSHIP, S.TALK] or carry_amt > 0.0: return
+	threat = at
+	if kind == "harm":
+		_reset(0.0)
+		state = S.FLEE
+		timer = randf_range(2.0, 3.5)
+	elif not heretic:
+		_reset(0.0)
+		state = S.CHEER
+		timer = randf_range(1.8, 3.0)
 
 func _set_pose_panic() -> void:
 	_pose_t["arm_l"] = -2.8 + sin(phase * 1.3) * 0.3

@@ -81,10 +81,16 @@ func _setup_environment() -> void:
 	env.ambient_light_energy = 0.38
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_exposure = 0.9
-	env.fog_enabled = false
-	env.fog_light_color = Color(0.72, 0.8, 0.9)
-	env.fog_density = 0.0035
+	# light aerial perspective for the wider ocean world, and soft glow on
+	# emissive things (holy orbs, the hand's aura, fire, meteors)
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.74, 0.83, 0.93)
+	env.fog_density = 0.0018
 	env.fog_sky_affect = 0.0
+	env.glow_enabled = true
+	env.glow_intensity = 0.4
+	env.glow_bloom = 0.0
+	env.glow_hdr_threshold = 1.1
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -93,7 +99,8 @@ func _setup_environment() -> void:
 	sun.light_color = Color(1.0, 0.95, 0.86)
 	sun.light_energy = 1.05
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 180.0
+	sun.directional_shadow_max_distance = 160.0
+	sun.shadow_blur = 1.5
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	add_child(sun)
 
@@ -177,6 +184,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		powers.cycle_life()
 	elif k == KEY_V:
 		hud.set_faith_overlay(not sim.show_faith)
+	elif k == KEY_T:
+		hud.toggle_tribes()
 	elif k == KEY_P:
 		hud.set_sandbox(not sim.religion.sandbox)
 	elif k == KEY_SPACE:

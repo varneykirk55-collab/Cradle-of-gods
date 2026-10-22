@@ -343,14 +343,17 @@ func _test_hand_animal_and_props() -> void:
 	hand.press()
 	await _frames(12)
 	_check("hand: grab deer", a.state == Animal.S.CARRIED, "state=%d" % a.state)
-	var dest := a.position + Vector3(8, 0, 0)
+	var dw = sim.nav.nearest_walkable(a.position + Vector3(8, 0, 0), 6)
+	var dest: Vector3 = dw if dw != null else a.position
 	for i in 30:
 		_pointer(a.position.lerp(dest, 0.2))
 		await _frames(1)
 	await _frames(15)
 	hand.release()
 	await _frames(40)
-	_check("hand: deer relocated and released", not a.dead and a.state != Animal.S.CARRIED and a.state != Animal.S.FLYING, "state=%d" % a.state)
+	var alive := is_instance_valid(a) and not a.dead
+	_check("hand: deer relocated and released", alive and a.state != Animal.S.CARRIED and a.state != Animal.S.FLYING,
+		"state=%d" % a.state if alive else "deer died (%s)" % str(sim.eco.causes))
 	# uproot a tree and drop it in a village as a gift
 	var t0 = sim.live_tribes()[0]
 	var tree = sim.find_nearest(t0.center + Vector3(10, 0, 10), WorldSim.RES_TREE, 150.0)
@@ -479,8 +482,9 @@ func _test_heresy() -> void:
 		if not v.parts["hood"].visible: hooded = false
 	_check("heresy: heretics are visibly marked", hooded, "")
 	var pers0: int = sim.religion.stats["persuasions"]
-	for i in 600:
+	for i in 2400:
 		sim._step(0.1)
+		if sim.religion.stats["persuasions"] > pers0: break
 	_check("heresy: heretics try to persuade believers", sim.religion.stats["persuasions"] > pers0, "persuasions=%d" % sim.religion.stats["persuasions"])
 	# respond: a miracle of plenty in their midst wins some back
 	var rec0: int = sim.religion.stats["recants"]

@@ -222,9 +222,11 @@ func cast(idx_or_id, p: Vector3, dt: float) -> void:
 				cast_done.emit(id, tc)
 			else:
 				terrain.paint_land(p, brush, step)
+				_brush_fx(p, Color(0.85, 0.95, 1.0), 0.06)
 			_land_witness(p)
 		"remove":
 			terrain.remove_land(p, brush, step)
+			_brush_fx(p, Color(0.7, 0.85, 1.0), 0.08)
 		"raise":
 			terrain.modify(p, brush, 7.0 * step)
 		"lower":
@@ -290,6 +292,16 @@ func cast(idx_or_id, p: Vector3, dt: float) -> void:
 			if not _pay(idx): return
 			_meteor(p)
 			cast_done.emit(id, p)
+
+var _fx_t := 0.0
+## Spray / dust where the brush is working (rate-limited).
+func _brush_fx(p: Vector3, c: Color, every: float) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _fx_t < every * 4.0: return
+	_fx_t = now
+	var a := randf() * TAU
+	var q := p + Vector3(cos(a), 0, sin(a)) * brush * randf_range(0.3, 0.9)
+	FX.sparkle(sim, Vector3(q.x, Terrain.SEA + 0.3, q.z), c, 10, brush * 0.25)
 
 func _tribe_in_crisis(p: Vector3, r: float) -> bool:
 	var t := sim.nearest_tribe(p, r)

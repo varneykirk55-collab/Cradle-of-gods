@@ -556,8 +556,9 @@ func _tribe_ai(t: Tribe, dt: float) -> void:
 			t.starving = false
 		else:
 			t.food = 0.0
-			var victim = t.members.pick_random()
-			kill_villager(victim, "starvation")
+			var hungry: Array = t.members.filter(func(m): return not m.is_busy_with_god())
+			if not hungry.is_empty():
+				kill_villager(hungry.pick_random(), "starvation")
 			if not t.starving:
 				log_event("Famine strikes %s!" % t.name, Color(0.9, 0.6, 0.4))
 			t.starving = true
@@ -822,7 +823,7 @@ func _update_fires(dt: float) -> void:
 			for r in resources_in_radius(p, 2.6):
 				if rng.randf() < 0.3: ignite_res(r)
 			for v in villagers.duplicate():
-				if Vector2(v.position.x - p.x, v.position.z - p.z).length() < 0.9:
+				if not v.is_busy_with_god() and Vector2(v.position.x - p.x, v.position.z - p.z).length() < 0.9:
 					kill_villager(v, "fire")
 		if f["t"] <= 0.0:
 			fires.erase(f)

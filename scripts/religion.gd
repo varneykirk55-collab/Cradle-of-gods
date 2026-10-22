@@ -91,6 +91,7 @@ func witness(pos: Vector3, radius: float, kind: String, strength: float, victims
 		if Vector2(v.position.x - pos.x, v.position.z - pos.z).length() > radius: continue
 		n += 1
 		v.last_miracle = sim.time
+		if strength >= 5.0 and randf() < 0.6: v.react(kind, pos)
 		match kind:
 			"good", "gift":
 				if v.heretic:

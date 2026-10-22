@@ -19,6 +19,8 @@ signal settlement_clicked(tribe)
 enum H { IDLE, GRAB_DOWN, HOLD, PLACE_DOWN, RELEASE, PAN, CLICK }
 
 const THROW_MIN := 5.5
+const PALM_LOCAL := Vector3(0.0, -0.06, -0.24)   # palm centre in the model's space
+const BUILDING_H := {"hall": 3.0, "hut": 2.0, "house": 2.8, "shrine": 2.2, "temple": 4.3}
 const THROW_MAX := 42.0
 const FINGERS := ["index", "middle", "ring", "pinky"]
 # curl angles per finger segment (positive = toward the palm) + sideways spread
@@ -145,11 +147,11 @@ uniform float metallic = 0.0;
 uniform float roughness = 0.6;
 uniform float emission_base = 0.0;
 uniform vec4 rim_color : source_color = vec4(1.0, 0.86, 0.55, 1.0);
-uniform float rim_strength = 0.45;
+uniform float rim_strength = 0.3;
 uniform vec4 glow_color : source_color = vec4(1.0, 0.9, 0.6, 1.0);
 uniform float glow = 0.0;
-uniform float fade_start = 0.55;
-uniform float fade_end = 1.0;
+uniform float fade_start = 0.22;
+uniform float fade_end = 0.62;
 varying float along;
 void vertex() {
 	along = VERTEX.z;
@@ -174,7 +176,9 @@ func _setup_materials(n: Node) -> void:
 			m.shader = sh
 			if base is StandardMaterial3D:
 				var b := base as StandardMaterial3D
-				m.set_shader_parameter("albedo", b.albedo_color)
+				var c := b.albedo_color
+				if b.resource_name == "HandSkin": c = Color(0.78, 0.52, 0.38)   # warm, slightly tanned divine skin
+				m.set_shader_parameter("albedo", c)
 				m.set_shader_parameter("metallic", b.metallic)
 				m.set_shader_parameter("roughness", b.roughness)
 				if b.emission_enabled:
@@ -219,14 +223,15 @@ func press(screen := Vector2.ZERO) -> void:
 func release() -> void:
 	match state:
 		H.GRAB_DOWN:
-			_attach()       # quick click-release still picks the thing up gently
-			_begin_place()
+			_attach()       # quick click: lift it and set it straight back down
+			if state == H.HOLD and not _begin_place():
+				_let_go(Vector3.ZERO)
 		H.HOLD:
 			var v := hand_vel
 			if v.length() > THROW_MIN:
 				_throw(v)
-			else:
-				_begin_place()
+			elif not _begin_place():
+				_refuse_t = 2.0     # nowhere safe to set it down: keep holding
 		H.CLICK:
 			if hover != null and hover["kind"] == "building":
 				stats["clicks"] += 1
@@ -272,6 +277,7 @@ func _throw(v: Vector3) -> void:
 	held_kind_was = ""
 
 var held_kind_was := ""
+var _refuse_t := 0.0
 
 func _let_go(v: Vector3) -> void:
 	if held == null:
@@ -292,21 +298,24 @@ func _let_go(v: Vector3) -> void:
 	_state_t = 0.0
 
 ## Collision-aware placement: nearest walkable, unbuilt ground under the hand.
-func _begin_place() -> void:
+## Returns false (and keeps holding) when a land creature has no safe ground nearby.
+func _begin_place() -> bool:
 	if held == null:
 		state = H.IDLE
-		return
+		return true
 	var p: Vector3 = ground if ground != null else hand_pos
 	var spot = p
 	if held["kind"] in ["villager", "animal"] and not (held["kind"] == "animal" and held["obj"].species == "bird"):
 		var w = sim.nav.nearest_walkable(p, 5)
-		if w != null:
-			spot = Vector3(w.x + randf_range(-0.2, 0.2), 0, w.z + randf_range(-0.2, 0.2))
+		if w == null:
+			return false
+		spot = Vector3(w.x + randf_range(-0.2, 0.2), 0, w.z + randf_range(-0.2, 0.2))
 		spot = _out_of_buildings(spot)
 	spot.y = maxf(terrain.height_at(spot.x, spot.z), Terrain.SEA - 0.3)
 	_place_target = spot
 	state = H.PLACE_DOWN
 	_state_t = 0.0
+	return true
 
 func _out_of_buildings(p: Vector3) -> Vector3:
 	for t in sim.tribes:
@@ -338,7 +347,7 @@ func _process(dt: float) -> void:
 	var over_ui := not headless and virtual_pointer == null and get_viewport().gui_get_hovered_control() != null
 	if not headless and virtual_pointer == null:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if over_ui or not enabled else Input.MOUSE_MODE_HIDDEN
-	hand_scale = clampf(rig._dist * 0.042, 1.15, 6.5)
+	hand_scale = clampf(rig._dist * 0.08, 2.0, 10.0)
 	var ray := _pointer_ray()
 	if virtual_pointer != null:
 		ground = virtual_pointer
@@ -347,13 +356,16 @@ func _process(dt: float) -> void:
 	_update_hover(ray, over_ui)
 	_state_t += dt
 	var cast_mode := powers.current >= 0
-	var target_h := 0.75 * hand_scale
+	var target_h := 0.6 * hand_scale
 	var target_pos: Vector3 = ground if ground != null else hand_pos
 	match state:
 		H.IDLE:
 			pose_name = "cast" if cast_mode else ("open" if hover != null and hover["kind"] != "building" else ("point" if hover != null else "relaxed"))
-			if hover != null and hover["kind"] != "building" and not cast_mode:
-				target_h = 0.5 * hand_scale + _hover_top(hover)
+			if hover != null and not cast_mode:
+				if hover["kind"] == "building":
+					target_h = BUILDING_H[hover["obj"].type] + 0.5 * hand_scale
+				else:
+					target_h = 0.22 * hand_scale + _hover_top(hover)
 		H.CLICK:
 			pose_name = "claw"
 			target_h = 0.35 * hand_scale
@@ -372,23 +384,23 @@ func _process(dt: float) -> void:
 				state = H.IDLE
 			else:
 				target_pos = _grab_point(held)
-				target_h = 0.15 * hand_scale
+				target_h = 0.12 * hand_scale
 				if _state_t > 0.17:
 					_attach()
 		H.HOLD:
 			pose_name = "grip"
-			target_h = 1.1 * hand_scale + 0.8
+			target_h = 1.0 * hand_scale + _hang_len()
 			if held == null or not _held_valid():
 				held = null
 				state = H.IDLE
 		H.PLACE_DOWN:
 			pose_name = "grip"
 			target_pos = _place_target
-			target_h = _hang_len() + 0.14 * hand_scale
+			target_h = _hang_len() + 0.14 * hand_scale + 0.05
 			var node := _held_node()
 			if node == null:
 				state = H.IDLE
-			elif _state_t > 0.6 or (_state_t > 0.1 and node.global_position.y <= _place_target.y + 0.2):
+			elif _state_t > 1.2 or (_state_t > 0.1 and node.global_position.y <= _place_target.y + 0.2):
 				stats["places"] += 1
 				_let_go(Vector3.ZERO)
 		H.RELEASE:
@@ -424,6 +436,7 @@ func _process(dt: float) -> void:
 
 func _held_valid() -> bool:
 	if held == null: return false
+	if held["obj"] is Object and not is_instance_valid(held["obj"]): return false
 	match held["kind"]:
 		"villager", "animal": return not held["obj"].dead
 		"res": return held["obj"].alive
@@ -450,36 +463,38 @@ func _grab_point(h: Dictionary) -> Vector3:
 func _hang_len() -> float:
 	if held == null: return 0.5
 	match held["kind"]:
-		"villager": return 0.95 * held["obj"].grow
-		"animal": return 0.75 * held["obj"].spec["scale"] * held["obj"].grow
+		"villager": return 1.2 * held["obj"].grow
+		"animal": return 0.95 * held["obj"].spec["scale"] * held["obj"].grow
 		"prop":
 			return 1.0 * held["obj"].scale.y if held["obj"].get_meta("type") == WorldSim.RES_TREE else 0.4
 	return 0.5
 
 func _grip_world() -> Vector3:
-	# the fist sits a little in front of and below the wrist pivot
-	return model.global_transform * (Vector3(0.0, -0.12, -0.32))
+	# the fist closes just under the palm
+	return hand_pos - Vector3(0, 0.12 * hand_scale, 0)
 
+## Camera-relative pose (as in Black & White): the back of the hand faces the
+## viewer, fingers reach up-screen into the world, the forearm trails toward
+## the bottom of the screen and fades out. Motion adds roll / lean.
 func _place_hand(dt: float) -> void:
-	var fwd := -rig.cam.global_transform.basis.z
-	fwd.y = 0.0
-	if fwd.length() < 0.01: fwd = Vector3.FORWARD
-	fwd = fwd.normalized()
-	var right := fwd.cross(Vector3.UP).normalized()
+	var cb := rig.cam.global_transform.basis.orthonormalized()
+	var right := cb.x
+	var up_s := cb.y
 	var lateral := hand_vel.dot(right)
-	var forward := hand_vel.dot(fwd)
-	var roll := clampf(-lateral * 0.025, -0.55, 0.55)
-	var pitch := -0.32 + clampf(-forward * 0.012, -0.3, 0.3)
-	if state in [H.GRAB_DOWN, H.PLACE_DOWN]: pitch -= 0.25
-	if state == H.HOLD: pitch += 0.15
-	if pose_name == "cast": pitch -= 0.15 + _pulse * 0.25
-	var b := Basis.looking_at(fwd, Vector3.UP)
-	b = b * Basis(Vector3.RIGHT, pitch) * Basis(Vector3.FORWARD, roll)
+	var vertical := hand_vel.dot(up_s)
+	var lean := 0.3 + clampf(vertical * 0.01, -0.2, 0.2)
+	var roll := clampf(-lateral * 0.02, -0.5, 0.5)
+	# reaching down / carrying: turn palm-down so what we hold dangles in view below the fist
+	if state == H.GRAB_DOWN: lean = 0.95
+	if state == H.HOLD or state == H.PLACE_DOWN: lean = 1.12 + clampf(vertical * 0.01, -0.2, 0.2)
+	if state == H.PAN or state == H.CLICK: lean += 0.25
+	if pose_name == "cast": lean += 0.2 + _pulse * 0.3
+	var b := cb * Basis(Vector3.RIGHT, PI * 0.5 - lean) * Basis(Vector3.BACK, roll)
 	var cur_b := model.global_transform.basis.orthonormalized()
 	var nb := Basis(cur_b.get_rotation_quaternion().slerp(b.get_rotation_quaternion(), minf(1.0, dt * 12.0)))
-	# keep the palm/fingers over the pointer: shift the wrist back along the hand
-	var off := nb * Vector3(0, 0, 0.35 * hand_scale)
-	model.global_transform = Transform3D(nb.scaled(Vector3.ONE * hand_scale), hand_pos + off)
+	# hand_pos is the palm: place the model so its palm lands exactly there
+	var off := nb * (PALM_LOCAL * hand_scale)
+	model.global_transform = Transform3D(nb.scaled(Vector3.ONE * hand_scale), hand_pos - off)
 
 func _update_held(dt: float) -> void:
 	var node := _held_node()
@@ -526,7 +541,10 @@ func _update_hover(ray: Array, over_ui: bool) -> void:
 		nh = null
 	hover = nh
 	var text := ""
-	if state == H.HOLD and held != null:
+	_refuse_t = maxf(0.0, _refuse_t - get_process_delta_time())
+	if state == H.HOLD and held != null and _refuse_t > 0.0:
+		text = "No safe ground here for %s - move over land to set them down, or flick to throw" % _held_name()
+	elif state == H.HOLD and held != null:
 		text = "Carrying %s - release slowly to set down, flick & release to throw" % _held_name()
 	elif hover != null:
 		match hover["kind"]:

@@ -35,6 +35,8 @@ var settle_panel: PanelContainer
 var settle_label: Label
 var settle_title: Label
 var settle_tribe = null
+var tribe_fold: Button
+var info_panel: PanelContainer
 var hand_button: Button
 var power_buttons: Array = []
 var speed_buttons: Array = []
@@ -162,7 +164,19 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 	root.add_child(tp)
 	var tv := VBoxContainer.new()
 	tp.add_child(tv)
-	tv.add_child(_label("SETTLEMENTS  (click to visit)", 15, GOLD))
+	var th := HBoxContainer.new()
+	tv.add_child(th)
+	var tl := _label("SETTLEMENTS", 15, GOLD)
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	th.add_child(tl)
+	var fold := Button.new()
+	fold.text = "-"
+	fold.tooltip_text = "Collapse / expand the list [T]. Click a settlement to visit it."
+	fold.custom_minimum_size = Vector2(26, 22)
+	_style_button(fold)
+	fold.pressed.connect(toggle_tribes)
+	th.add_child(fold)
+	tribe_fold = fold
 	tribe_box = VBoxContainer.new()
 	tribe_box.add_theme_constant_override("separation", 2)
 	tv.add_child(tribe_box)
@@ -262,6 +276,7 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 
 	# --- info / options box above toolbar
 	var ip := _panel()
+	info_panel = ip
 	ip.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	ip.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	ip.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -411,7 +426,7 @@ POWERS   1 Land  2 Remove  3 Raise  4 Lower  5 Life  6 Forest  7 Rain  8 Plenty
          B land mode (brush / tile)    C life type    [ / ] brush size
 RELIGION P infinite prayer (sandbox)   V faith overlay (gold = devout, white = priest,
          purple = heretic)   Miracles cost prayer, worship at shrines produces it
-TIME     Space pause   - / + slower / faster       H or F1 help   F12 screenshot"""
+TIME     Space pause   - / + slower / faster    T fold settlement list    H or F1 help    F12 screenshot"""
 
 func _on_life_selected(i: int) -> void:
 	powers.life_type = Powers.LIFE_TYPES[i]
@@ -483,7 +498,13 @@ func _on_power_changed(idx: int) -> void:
 	life_option.select(Powers.LIFE_TYPES.find(powers.life_type))
 	_refresh_info()
 
+func toggle_tribes() -> void:
+	tribe_box.visible = not tribe_box.visible
+	tribe_fold.text = "-" if tribe_box.visible else "+"
+
 func _refresh_info() -> void:
+	# the info box only appears while hovering the toolbar or using a power
+	info_panel.visible = _hover != -1 or powers.current >= 0
 	var i := _hover if _hover >= 0 else powers.current
 	if _hover == -2 or i < 0:
 		info_title.text = "God Hand"
@@ -552,7 +573,9 @@ func _update_stats() -> void:
 			row.flat = true
 			row.focus_mode = Control.FOCUS_NONE
 			row.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			row.add_theme_font_size_override("font_size", 13)
+			row.add_theme_font_size_override("font_size", 12)
+			row.add_theme_constant_override("h_separation", 6)
+			row.custom_minimum_size = Vector2(0, 20)
 			row.icon = _swatch()
 			row.pressed.connect(_on_tribe_row.bind(i))
 			tribe_box.add_child(row)
@@ -560,12 +583,13 @@ func _update_stats() -> void:
 		var t = tr[i]
 		row.add_theme_color_override("font_color", HERETIC.lightened(0.2) if t.heretical else Color(0.95, 0.92, 0.85))
 		row.add_theme_color_override("icon_normal_color", t.color)
-		var holy: String = (" [Temple]" if t.has_temple() else (" [Shrine]" if t.has_shrine() else ""))
-		var warn: String = "  ! heresy %d%%" % int(t.tension * 100) if t.heretics > 0 and t.tension >= 0.15 else ""
-		row.text = "%s (%s)%s  pop %d%s\n  %s %d%%  worship %d  heretics %d%s%s" % [
-			t.name, t.stage, holy, t.members.size(), "  *blessed*" if t.blessed > 0.0 else "",
-			sim.religion.tribe_label(t), int(t.devotion), t.worshippers, t.heretics, warn,
-			"  STARVING" if t.starving else ""]
+		var holy: String = (" Temple" if t.has_temple() else (" Shrine" if t.has_shrine() else ""))
+		var warn: String = "  ! %d heretics" % t.heretics if t.heretics > 0 else ""
+		row.text = "%s  %s  pop %d  %s %d%%%s%s%s%s" % [
+			t.name, t.stage, t.members.size(), sim.religion.tribe_label(t), int(t.devotion), holy, warn,
+			"  blessed" if t.blessed > 0.0 else "", "  STARVING" if t.starving else ""]
+		row.tooltip_text = "%s (%s): %d worshippers, %d heretics, tension %d%%\nwood %d  stone %d  food %d\nClick to visit." % [
+			t.name, sim.religion.tribe_label(t), t.worshippers, t.heretics, int(t.tension * 100), t.wood, t.stone, t.food]
 
 var _swatch_tex: Texture2D
 func _swatch() -> Texture2D:

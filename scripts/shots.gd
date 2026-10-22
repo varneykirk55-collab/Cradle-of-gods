@@ -58,6 +58,7 @@ func run(p_main) -> void:
 	m.hud.toggle_help()
 	# --- God Hand: hover, grab, carry, throw
 	var v: Villager = _adult(t0)
+	v._reset(120.0)   # stand still for the photo shoot
 	rig.set_view(v.position, 20.0, 0.9, 0.75, true)
 	await _frames(4)
 	_point_at(v.position)
@@ -84,6 +85,7 @@ func run(p_main) -> void:
 	# --- carry a deer
 	var deer = _animal("deer", t0.center)
 	if deer:
+		deer._rest(120.0)
 		rig.set_view(deer.position, 18.0, 1.6, 0.6, true)
 		await _frames(3)
 		_point_at(deer.position)
@@ -162,7 +164,8 @@ func run(p_main) -> void:
 		await _shot("14_heretics_overlay")
 	m.hud.set_faith_overlay(false)
 	m.hud.show_tribe(null)
-	# --- wildlife
+	# --- wildlife (paused so the subject stays in frame while llvmpipe renders)
+	m.set_speed(0)
 	for sp in ["deer", "wolf", "rabbit"]:
 		var a = _animal(sp, Vector3.ZERO)
 		if a != null:
@@ -175,6 +178,7 @@ func run(p_main) -> void:
 		rig.set_view(bird.position - Vector3(0, 6, 0), 22.0, 0.4, 0.35, true)
 		await _frames(6)
 		await _shot("15_wildlife_bird")
+	m.set_speed(1)
 	# --- settlement panel + temple
 	var tt = _holy_tribe()
 	if tt != null:
@@ -288,7 +292,7 @@ func _input_test() -> void:
 	var t0: WorldSim.Tribe = _biggest()
 	rig.set_view(t0.center, 40.0, 0.8, 0.8, true)
 	await _frames(5)
-	var center := m.get_viewport().get_visible_rect().size * 0.5
+	var center: Vector2 = m.get_viewport().get_visible_rect().size * 0.5
 	var f0 := rig.focus
 	_key(KEY_W, true)
 	await _frames(15)
@@ -308,7 +312,7 @@ func _input_test() -> void:
 	# --- God Hand via the real mouse: left-drag empty ground pans the world
 	rig.set_view(t0.center + Vector3(20, 0, 20), 40.0, 0.8, 0.9, true)
 	await _frames(6)
-	var empty := center + Vector2(0, 120)
+	var empty: Vector2 = center + Vector2(0, 120)
 	Input.warp_mouse(empty)
 	await _frames(4)
 	var fpan := rig.focus
@@ -379,6 +383,9 @@ func _input_test() -> void:
 	_mouse_button(MOUSE_BUTTON_LEFT, bc, false)
 	await _frames(2)
 	_check("input: clicking toolbar icon selects power", powers.current_id() == "meteor", "current=%s" % powers.current_id())
+	Input.warp_mouse(center)
+	_motion(center, Vector2.ZERO, 0)
+	await _frames(2)
 	_key(KEY_ESCAPE, true)
 	_key(KEY_ESCAPE, false)
 	await _frames(1)
@@ -401,6 +408,7 @@ func _key(k: Key, pressed: bool) -> void:
 	Input.parse_input_event(e)
 
 func _motion(pos: Vector2, rel: Vector2, mask: int) -> void:
+	Input.warp_mouse(pos)
 	var mm := InputEventMouseMotion.new()
 	mm.position = pos
 	mm.global_position = pos
