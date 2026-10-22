@@ -79,7 +79,7 @@ The project uses the **GL Compatibility** renderer, so it runs on low-end GPUs a
 ## Testing
 `tools/run_tests.sh` runs these two passes:
 - `godot --headless --path . --fixed-fps 30 -- --autotest`: about 11 simulated minutes of world time,
-  printing a stats line every 30 s. It also checks 15 things (population grows, buildings are built, raise and
+  printing a stats line every 30 s. It also checks 14 things (population grows, buildings are built, raise and
   lower terrain, the physics collider matches the edited mesh, spawning, founding a tribe, forest, rain/bless,
   lightning kills and ignites, the meteor destroys buildings and leaves a crater, and the world survives a long
   run). It exits non-zero on failure. The last log is in `tools/last_autotest.log`.
