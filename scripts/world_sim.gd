@@ -13,6 +13,7 @@ const BUCKET := 8.0
 const MAX_TRIBES := 8
 const MAX_POP := 400
 const HOUSING := {"hall": 4, "hut": 3, "house": 6}
+const MODEL := {"hall": "townhall", "hut": "hut", "house": "house"}
 const BUILD_WORK := {"hall": 10.0, "hut": 7.0, "house": 12.0}
 const TRIBE_NAMES := ["Ravnfolk", "Ulfheim", "Skaldir", "Eikvald", "Solbrand", "Myrvik", "Hrafnir", "Isgard", "Bjarkan", "Torvik"]
 const TRIBE_COLORS := [Color(0.85, 0.2, 0.2), Color(0.2, 0.45, 0.9), Color(0.95, 0.8, 0.2), Color(0.6, 0.3, 0.85),
@@ -328,8 +329,12 @@ func wanted_resource(t: Tribe) -> int:
 	if t.food < pop * 1.5 + 4.0: return RES_BUSH
 	if t.wood < 18.0 + pop: return RES_TREE
 	if t.stone < 12.0 and _has_built(t, "hut"): return RES_ROCK
-	var roll := rng.randf()
-	return RES_BUSH if roll < 0.4 else (RES_TREE if roll < 0.75 else RES_ROCK)
+	var opts: Array = []
+	if t.food < 30.0 + pop * 3.0: opts.append_array([RES_BUSH, RES_BUSH])
+	if t.wood < 40.0 + pop * 2.0: opts.append(RES_TREE)
+	if t.stone < 30.0 + pop: opts.append(RES_ROCK)
+	if opts.is_empty(): return -1  # stores are full: rest / stroll
+	return opts[rng.randi() % opts.size()]
 
 func _has_built(t: Tribe, type: String) -> bool:
 	for b in t.buildings:
@@ -349,7 +354,7 @@ func place_building(t: Tribe, type: String, pos: Vector3) -> Building:
 	b.tribe = t
 	b.pos = Vector3(pos.x, terrain.height_at(pos.x, pos.z), pos.z)
 	var mi := MeshInstance3D.new()
-	mi.mesh = Assets.mesh(type)
+	mi.mesh = Assets.mesh(MODEL[type])
 	add_child(mi)
 	mi.position = b.pos
 	mi.rotation.y = rng.randf() * TAU if type != "hall" else rng.randf_range(-0.3, 0.3)
@@ -419,7 +424,7 @@ func _tribe_ai(t: Tribe, dt: float) -> void:
 	if pending_site(t) == null:
 		if not has_hall:
 			place_building(t, "hall", t.center)
-		elif t.wood >= 10.0 and pop >= cap - 1 and t.buildings.size() < 30:
+		elif t.wood >= 10.0 and pop >= cap - 2 and t.buildings.size() < 30:
 			var spot = _building_spot(t)
 			if spot != null:
 				t.wood -= 10.0
@@ -433,9 +438,6 @@ func _tribe_ai(t: Tribe, dt: float) -> void:
 					b.built = false
 					b.work = 0.0
 					b.node.mesh = Assets.mesh("house")
-					b.node.set_surface_override_material(0, null)
-					for i in b.node.get_surface_override_material_count():
-						b.node.set_surface_override_material(i, null)
 					Assets.apply_tribe(b.node, t.color)
 					b.node.scale = Vector3(1, 0.08, 1)
 					break
@@ -667,13 +669,20 @@ func _step(dt: float) -> void:
 	if _spread_t <= 0.0:
 		_spread_t = 0.5
 		if not resources.is_empty():
-			for i in 2:
+			for i in 3:
 				var src: Res = resources[rng.randi() % resources.size()]
 				if src.type == RES_ROCK or src.burning: continue
 				var p := src.pos + Vector3(rng.randf_range(-3, 3), 0, rng.randf_range(-3, 3))
 				var fert := terrain.fertility_at(p.x, p.z)
-				if can_grow_tree(p) and rng.randf() < 0.35 + fert * 0.6 and resources_in_radius(p, 1.2).is_empty():
+				if can_grow_tree(p) and rng.randf() < 0.5 + fert * 0.6 and resources_in_radius(p, 1.2).is_empty():
 					add_resource(src.type if rng.randf() < 0.8 else RES_BUSH, p, true)
+			# wild berry bushes keep reappearing in grassland
+			if count_type(RES_BUSH) < 160:
+				for i in 2:
+					var bp := Vector3(rng.randf_range(-74, 74), 0, rng.randf_range(-74, 74))
+					var bb := terrain.biome_at(bp.x, bp.z)
+					if bb == Terrain.Biome.GRASS or bb == Terrain.Biome.FOREST or (terrain.fertility_at(bp.x, bp.z) > 0.2 and can_grow_tree(bp)):
+						add_resource(RES_BUSH, bp, true)
 
 func prewarm(seconds: float) -> void:
 	var t := 0.0

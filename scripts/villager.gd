@@ -137,6 +137,9 @@ func _decide() -> void:
 		_wander(position, 12.0)
 		return
 	var want: int = sim.wanted_resource(tribe)
+	if want < 0:
+		_wander(tribe.center, 9.0)
+		return
 	res = sim.find_nearest(position, want, 42.0)
 	if res == null:
 		for alt in [WorldSim.RES_BUSH, WorldSim.RES_TREE, WorldSim.RES_ROCK]:

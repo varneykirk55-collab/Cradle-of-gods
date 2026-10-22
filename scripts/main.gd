@@ -253,8 +253,14 @@ func _autotest() -> void:
 	powers.cooldown = 0.0
 	powers.cast(5, victim.position, 0.0)
 	if not _check("lightning kills", sim.stats["deaths"] > d0 and victim.dead, "deaths %d -> %d" % [d0, sim.stats["deaths"]]): fails += 1
-	var fires := sim.fires.size()
-	print("INFO fires after lightning: %d" % fires)
+	var ftree = sim.find_nearest(Vector3.ZERO, WorldSim.RES_TREE, 200.0)
+	var trees_before := sim.count_type(WorldSim.RES_TREE)
+	if ftree != null:
+		powers.cooldown = 0.0
+		powers.cast(5, ftree.pos, 0.0)
+	if not _check("lightning ignites trees", sim.fires.size() > 0, "fires=%d" % sim.fires.size()): fails += 1
+	for i in 20: sim.update(0.5)
+	print("INFO after 10s of fire: fires=%d trees %d -> %d" % [sim.fires.size(), trees_before, sim.count_type(WorldSim.RES_TREE)])
 	# --- meteor on a village
 	var target: Vector3 = sim.live_tribes()[1].center if sim.live_tribes().size() > 1 else t0.center
 	var bb := sim.building_count()
