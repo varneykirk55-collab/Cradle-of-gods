@@ -331,7 +331,7 @@ func paint_land(center: Vector3, radius: float, dt: float) -> void:
 func place_tile(center: Vector3) -> Vector3:
 	var cx := int(floor((center.x + HALF) / TILE)) * TILE
 	var cz := int(floor((center.z + HALF) / TILE)) * TILE
-	var skirt := 6
+	var skirt := 7
 	for z in range(maxi(1, cz - skirt), mini(W - 1, cz + TILE + skirt + 1)):
 		for x in range(maxi(1, cx - skirt), mini(W - 1, cx + TILE + skirt + 1)):
 			var wx := x - HALF
@@ -344,9 +344,8 @@ func place_tile(center: Vector3) -> Vector3:
 				var target := LAND_H + (_coast_noise(wx * 0.6 + 40.0, wz * 0.6) * 0.5 + 0.5) * 0.9
 				heights[i] = maxf(heights[i], target)
 			else:
-				# smooth underwater slope away from the tile (no cliff walls)
-				var f := 1.0 - out / float(skirt + 1)
-				var shelf := lerpf(SHELF_H - 5.0, SEA - 0.2, f * f * (3.0 - 2.0 * f))
+				# beach ring, then a smooth underwater slope away from the tile (no cliff walls)
+				var shelf := LAND_H * 1.05 - out * 0.72 if out <= 4.0 else -1.1 - (out - 4.0) * 1.6
 				heights[i] = maxf(heights[i], shelf)
 			_mark(x, z)
 	var c := Vector3(cx + TILE * 0.5 - HALF, 0, cz + TILE * 0.5 - HALF)

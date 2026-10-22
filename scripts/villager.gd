@@ -105,7 +105,7 @@ func setup(p_sim, p_tribe, pos: Vector3, child: bool) -> void:
 	add_child(bundle)
 	marker = MeshInstance3D.new()
 	marker.mesh = sim.marker_mesh
-	marker.position = Vector3(0, 1.75, 0)
+	marker.position = Vector3(0, 1.9, 0)
 	marker.visible = false
 	marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(marker)

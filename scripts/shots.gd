@@ -72,6 +72,9 @@ func run(p_main) -> void:
 	for i in 12:
 		_point_at(v.position.lerp(t0.center + Vector3(-4, 0, 4), 0.1))
 		await _frames(1)
+	rig.focus = hand.hand_pos
+	rig.snap()
+	await _frames(3)
 	await _shot("06_hand_carrying_villager")
 	var from := hand.hand_pos
 	for i in 5:
@@ -94,6 +97,9 @@ func run(p_main) -> void:
 		for i in 18:
 			_point_at(deer.position)
 			await _frames(1)
+		rig.focus = hand.hand_pos
+		rig.snap()
+		await _frames(3)
 		await _shot("08_hand_carrying_deer")
 		hand.release()
 		await _frames(30)
@@ -167,9 +173,10 @@ func run(p_main) -> void:
 	# --- wildlife (paused so the subject stays in frame while llvmpipe renders)
 	m.set_speed(0)
 	for sp in ["deer", "wolf", "rabbit"]:
-		var a = _animal(sp, Vector3.ZERO)
+		var a = _animal(sp, Vector3.ZERO, true)
 		if a != null:
-			rig.set_view(a.position, 11.0 if sp == "rabbit" else 15.0, 0.4, 0.45, true)
+			var yaw: float = a.rotation.y + 1.2   # three-quarter view of the animal
+			rig.set_view(a.position, 7.5 if sp == "rabbit" else 11.0, yaw, 0.4, true)
 			hand.virtual_pointer = Vector3(500, 0, 500)
 			await _frames(10)
 			await _shot("15_wildlife_%s" % sp)
@@ -249,12 +256,17 @@ func _adult(t) -> Villager:
 		if not v.is_child() and not v.is_busy_with_god() and not v.priest: return v
 	return t.members[0]
 
-func _animal(sp: String, near: Vector3):
+func _animal(sp: String, near: Vector3, open_ground := false):
 	var best = null
 	var bd := INF
 	for a in sim.eco.animals:
 		if a.species != sp or a.dead or a.is_busy_with_god(): continue
 		var d: float = a.position.distance_to(near)
+		if open_ground:
+			# prefer animals on gentle, low ground so no mountain blocks the camera
+			d = m.terrain.slope_at(a.position.x, a.position.z) * 40.0 + maxf(0.0, a.position.y - 4.0) * 10.0
+			for t in sim.live_tribes():
+				if t.center.distance_to(a.position) < 10.0: d += 50.0
 		if d < bd:
 			bd = d
 			best = a

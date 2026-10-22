@@ -486,7 +486,7 @@ func _place_hand(dt: float) -> void:
 	var roll := clampf(-lateral * 0.02, -0.5, 0.5)
 	# reaching down / carrying: turn palm-down so what we hold dangles in view below the fist
 	if state == H.GRAB_DOWN: lean = 0.95
-	if state == H.HOLD or state == H.PLACE_DOWN: lean = 1.12 + clampf(vertical * 0.01, -0.2, 0.2)
+	if state == H.HOLD or state == H.PLACE_DOWN: lean = 0.82 + clampf(vertical * 0.01, -0.2, 0.2)
 	if state == H.PAN or state == H.CLICK: lean += 0.25
 	if pose_name == "cast": lean += 0.2 + _pulse * 0.3
 	var b := cb * Basis(Vector3.RIGHT, PI * 0.5 - lean) * Basis(Vector3.BACK, roll)

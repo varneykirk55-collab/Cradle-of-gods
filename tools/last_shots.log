@@ -1,85 +1,164 @@
-Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
 WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
-     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:360)
-OpenGL API 4.5 (Core Profile) Mesa 25.0.7-2+deb13u1 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 19.1.7, 256 bits)
+     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)
+OpenGL API 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)
 ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
-ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
 ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
-ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
 ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
-ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
-ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
-ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5731:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
 ERROR: Condition "status < 0" is true. Returning: ERR_CANT_OPEN
-   at: init_output_device (drivers/alsa/audio_driver_alsa.cpp:90)
+   at: init_output_device (drivers/alsa/audio_driver_alsa.cpp:97)
 WARNING: All audio drivers failed, falling back to the dummy driver.
-     at: initialize (servers/audio_server.cpp:247)
+     at: initialize (servers/audio/audio_server.cpp:258)
 
 Cradle of Gods - world seed 4242
 [t=0] The Ravnfolk tribe has settled.
 [t=0] The Ulfheim tribe has settled.
 [t=0] The Skaldir tribe has settled.
-SCREENSHOT /workspace/god-sim/screenshots/01_title_splash.png
-[t=32] Ulfheim has grown into a Village!
-[t=34] Skaldir has grown into a Village!
-[t=43] Ravnfolk has grown into a Village!
-[t=77] Ravnfolk raised a stone house.
-[t=90] Ulfheim raised a stone house.
-[t=110] Ravnfolk raised a stone house.
-[t=122] The Eikvald tribe has settled.
-[t=122] Settlers from Ulfheim founded Eikvald.
-[t=127] Ulfheim raised a stone house.
-[t=144] Ravnfolk raised a stone house.
-[t=145] Ravnfolk has grown into a Town!
-[t=173] The Solbrand tribe has settled.
-[t=173] Settlers from Skaldir founded Solbrand.
-[t=182] Eikvald raised a stone house.
-[t=182] Eikvald has grown into a Village!
-[t=188] The Myrvik tribe has settled.
-[t=188] Settlers from Ulfheim founded Myrvik.
-[t=210] Ravnfolk raised a stone house.
-[t=226] Eikvald raised a stone house.
-[t=251] Myrvik has grown into a Village!
-[t=255] Solbrand raised a stone house.
-[t=256] Solbrand has grown into a Village!
-[t=262] Ulfheim raised a stone house.
-[t=262] Ulfheim has grown into a Town!
-[t=276] The Hrafnir tribe has settled.
-[t=276] Settlers from Ulfheim founded Hrafnir.
-[t=277] Myrvik raised a stone house.
-[t=293] The Isgard tribe has settled.
-[t=293] Settlers from Ravnfolk founded Isgard.
-SCREENSHOT /workspace/god-sim/screenshots/02_world_overview.png
-[t=307] Myrvik raised a stone house.
-SCREENSHOT /workspace/god-sim/screenshots/03_village_closeup.png
-SCREENSHOT /workspace/god-sim/screenshots/04_help_overlay.png
-[t=308] Ulfheim is blessed by the gods.
-SCREENSHOT /workspace/god-sim/screenshots/05_blessed_rain.png
-[t=314] Lightning struck down 1 villager.
-SCREENSHOT /workspace/god-sim/screenshots/06_lightning.png
-SCREENSHOT /workspace/god-sim/screenshots/07_forest_fire.png
-SCREENSHOT /workspace/god-sim/screenshots/08_before_meteor.png
-SCREENSHOT /workspace/god-sim/screenshots/09_meteor_falling.png
-[t=318] The Isgard great hall was destroyed by a meteor!
-[t=318] A meteor struck! 3 dead, 2 buildings destroyed.
-SCREENSHOT /workspace/god-sim/screenshots/10_meteor_impact.png
-[t=318] The Isgard tribe has perished.
-[t=320] The Bjarkan tribe has settled.
-[t=320] Settlers from Ulfheim founded Bjarkan.
-SCREENSHOT /workspace/god-sim/screenshots/11_crater.png
-SCREENSHOT /workspace/god-sim/screenshots/12_terrain_sculpt.png
-[t=323] Eikvald raised a stone house.
-[t=324] Eikvald has grown into a Town!
-PASS  input: W pans camera  moved 62.9
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/01_title_splash.png
+[t=33] Ravnfolk has grown into a Village!
+[t=38] Ulfheim has grown into a Village!
+[t=43] Skaldir has grown into a Village!
+[t=54] Skaldir begins a shrine to the god.
+[t=66] Skaldir built a shrine to the god!
+[t=66] Yra became a priest of Skaldir.
+[t=85] The Eikvald tribe has settled.
+[t=85] Settlers from Ulfheim founded Eikvald.
+[t=107] Skaldir gathers to worship at the shrine.
+[t=135] The Solbrand tribe has settled.
+[t=135] Settlers from Ravnfolk founded Solbrand.
+[t=137] The Myrvik tribe has settled.
+[t=137] Settlers from Skaldir founded Myrvik.
+[t=148] Eikvald has grown into a Village!
+[t=157] Eikvald begins a shrine to the god.
+[t=166] Eikvald built a shrine to the god!
+[t=166] Dagmund became a priest of Eikvald.
+[t=187] Myrvik has grown into a Village!
+[t=194] The Hrafnir tribe has settled.
+[t=194] Settlers from Skaldir founded Hrafnir.
+[t=197] Eikvald gathers to worship at the shrine.
+[t=211] Solbrand has grown into a Village!
+[t=218] Skaldir gathers to worship at the shrine.
+[t=233] Ulfheim begins a shrine to the god.
+[t=241] Ulfheim built a shrine to the god!
+[t=247] Myrvik begins a shrine to the god.
+[t=249] The Isgard tribe has settled.
+[t=249] Settlers from Eikvald founded Isgard.
+[t=255] Myrvik built a shrine to the god!
+[t=255] Halvald became a priest of Myrvik.
+[t=257] Hrafnir has grown into a Village!
+[t=259] Ulfheim raised a stone house.
+[t=259] Eikvald raised a stone house.
+[t=265] Myrvik raised a stone house.
+[t=266] The Bjarkan tribe has settled.
+[t=266] Settlers from Skaldir founded Bjarkan.
+[t=291] Ravnfolk begins a shrine to the god.
+[t=298] Ulfar became a priest of Myrvik.
+[t=299] Ravnfolk built a shrine to the god!
+[t=299] Hela became a priest of Skaldir.
+[t=308] Ravnfolk raised a stone house.
+[t=315] Ulfheim raised a stone house.
+[t=320] Ragveig became a priest of Ravnfolk.
+[t=322] Eikvald raised a stone house.
+[t=324] Bjarkan has grown into a Village!
+[t=326] Famine strikes Ravnfolk!
+[t=330] Skaldir gathers to worship at the shrine.
+[t=341] Hrafnir begins a shrine to the god.
+[t=344] Skaldir raised a stone house.
+[t=344] Myrvik raised a stone house.
+[t=345] Isgard has grown into a Village!
+[t=347] Hrafnir built a shrine to the god!
+[t=348] Vigleif became a priest of Hrafnir.
+[t=357] Eikvald raised a stone house.
+[t=357] Eikvald has grown into a Town!
+[t=358] Hrafnir raised a stone house.
+[t=375] Skaldir raised a stone house.
+[t=384] Isgard begins a shrine to the god.
+[t=385] Ulfheim raised a stone house.
+[t=385] Ulfheim has grown into a Town!
+[t=388] Eikvald raised a stone house.
+[t=388] Myrvik raised a stone house.
+[t=388] Myrvik has grown into a Town!
+[t=394] Isgard built a shrine to the god!
+[t=395] Freydis became a priest of Isgard.
+[t=405] Skaldir raised a stone house.
+[t=406] Skaldir has grown into a Town!
+[t=408] Famine strikes Ravnfolk!
+[t=412] Eikvald raised a stone house.
+[t=418] Solbrand begins a shrine to the god.
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/02_world_overview.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/03_village_closeup.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/04_help_overlay.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/05_hand_hover_villager.png
+[t=430] Myrvik raised a stone house.
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/06_hand_carrying_villager.png
+[t=432] Solbrand built a shrine to the god!
+[t=433] Helrun was hurled to their death by the god.
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/07_villager_thrown.png
+[t=434] Kara became a priest of Ulfheim.
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/08_hand_carrying_deer.png
+[t=445] Hrafnir raised a stone house.
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/09_before_land_creation.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/10_land_brush_new_island.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/11_land_tiles.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/12_remove_land_channel.png
+[t=456] Famine strikes Ravnfolk!
+[t=458] Magda became a priest of Solbrand.
+[t=458] Skaldir raised a stone house.
+[t=460] Myrvik raised a stone house.
+[t=461] Isgard raised a stone house.
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/13_worship_ceremony.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/14_heretics_overlay.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/15_wildlife_deer.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/15_wildlife_wolf.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/15_wildlife_rabbit.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/15_wildlife_bird.png
+[t=471] Hrafnir raised a stone house.
+[t=472] Hrafnir has grown into a Town!
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/16_settlement_panel.png
+[t=472] Ulfheim is blessed by the gods.
+[t=472] 52 villagers witnessed a miracle.
+[t=473] Ulfheim begins raising a temple.
+[t=473] Famine strikes Bjarkan!
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/17_blessed_rain.png
+[t=476] A miracle of plenty feeds Ulfheim.
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/18_miracle_of_plenty.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/19_lightning.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/20_forest_fire.png
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/21_meteor_falling.png
+[t=481] The Bjarkan great hall was destroyed by a meteor!
+[t=481] A meteor struck! 2 dead, 3 buildings destroyed.
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/22_meteor_impact.png
+[t=483] Ulfheim raised a great temple!
+[t=483] Kara became a priest of Ulfheim.
+PASS  input: W pans camera  moved 66.8
 PASS  input: wheel zooms  40.0 -> 35.2
-PASS  input: right-drag orbits  yaw 0.80 -> 0.08
-[t=325] Ulfheim raised a stone house.
-INFO fps under this renderer: 3.0
-PASS  input: key 3 selects Create Life  current=2
-PASS  input: click casts power  pop 112 -> 115 (ground=(-31.56576, 8.779928, -1.381224))
-SCREENSHOT /workspace/god-sim/screenshots/13_input_spawn.png
-PASS  input: clicking toolbar icon selects power  current=6
+PASS  input: right-drag orbits  yaw 0.80 -> -0.64
+[t=484] Dagrid became a priest of Ulfheim.
+[t=485] Eikvald raised a stone house.
+PASS  input: hand drags the world (pan)  moved 4.9
+[t=488] Famine strikes Ravnfolk!
+PASS  input: mouse hover finds the villager  hover=villager
+PASS  input: left-press grabs  state=2
+[t=490] Lifrun became a priest of Eikvald.
+[t=490] Famine strikes Solbrand!
+PASS  input: flick + release throws  state=14
+[t=491] Yrstein was hurled to their death by the god.
+PASS  input: key 5 selects Create Life  current=villager
+[t=495] 59 villagers witnessed a miracle.
+PASS  input: click casts power  pop 235 -> 238 (ground=(-15.82292, 2.499094, -29.77718))
+SCREENSHOT /home/user/Cradle-of-gods/screenshots/23_input_spawn.png
+PASS  input: B toggles land mode  mode=tile
+PASS  input: ] grows the brush  4 -> 5
+PASS  input: clicking toolbar icon selects power  current=meteor
+PASS  input: Esc returns to the God Hand  
 PASS  input: space pauses  speed=paused
-SHOTS DONE t=  329s pop=114 tribes=8 buildings= 34 trees= 646 rocks=119 bushes=147 fires= 2 food=361 wood=477 stone=150 births=123 deaths=30 built=48 destroyed=2
-WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
-     at: cleanup (core/object/object.cpp:2284)
+PASS  input: + speeds up  speed=1x
+INFO fps under this renderer: 1.0
+SHOTS DONE fails=0 t=  497s pop=236 tribes=9 buildings= 74 trees= 590 rocks= 81 bushes= 23 fires= 0 food=499 wood=748 stone=276 births=300 deaths=85 built=101 destroyed=5 | faith=37 worship=142 heretics=0 priests=9 shrines=7 temples=1 prayer=458 | deer=25 rabbit=21 wolf=11 bird=18
+WARNING: 86 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

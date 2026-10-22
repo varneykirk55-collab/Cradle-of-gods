@@ -127,8 +127,8 @@ func setup(p_terrain: Terrain, p_seed: int) -> void:
 	_make_pool("rock", 500)
 	_make_pool("bush", 700)
 	_make_pool("stump", 400)
-	marker_mesh.radius = 0.11
-	marker_mesh.height = 0.22
+	marker_mesh.radius = 0.17
+	marker_mesh.height = 0.34
 	marker_mesh.radial_segments = 8
 	marker_mesh.rings = 4
 	for k in ["heretic", "priest", "devout", "believer", "doubter"]:
@@ -145,6 +145,8 @@ func setup(p_terrain: Terrain, p_seed: int) -> void:
 	_populate_nature()
 	for i in 3:
 		var spot = find_settle_spot(40.0)
+		if spot == null: spot = find_settle_spot(28.0)
+		if spot == null: spot = find_settle_spot(18.0)
 		if spot != null:
 			var t := create_tribe(spot, true)
 			for j in 6:

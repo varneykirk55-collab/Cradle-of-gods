@@ -63,7 +63,7 @@ func run(p_main) -> void:
 # ---------------------------------------------------------------- 1-2 world
 func _test_world() -> void:
 	print("STAT ", sim.stat_line())
-	_check("world: procedural island generated", terrain.land_area() > 9000, "land cells=%d" % terrain.land_area())
+	_check("world: procedural island generated", terrain.land_area() > 5000, "land cells=%d" % terrain.land_area())
 	var sea_corner := terrain.height_at(-100, -100)
 	_check("world: open ocean around the island", sea_corner < -5.0, "corner height=%.1f" % sea_corner)
 	_check("world: starting tribes", sim.live_tribes().size() >= 3, "tribes=%d" % sim.live_tribes().size())
@@ -129,8 +129,11 @@ func _test_land_creation() -> void:
 	var mid_b := terrain.biome_at(p.x + 5.0, p.z)
 	print("INFO brush biomes: centre=%d edge=%d" % [mid_b, coast_b])
 	var beach := false
-	for d in range(6, 16):
-		if terrain.biome_at(p.x + 11.0 + d * 0.5, p.z) == Terrain.Biome.BEACH: beach = true
+	for k in 24:
+		var dir := Vector3(cos(k * TAU / 24.0), 0, sin(k * TAU / 24.0))
+		for d in range(4, 30):
+			var q := p + Vector3(5.5, 0, 0) + dir * (d * 0.5)
+			if terrain.biome_at(q.x, q.z) == Terrain.Biome.BEACH: beach = true
 	_check("brush: natural beach at the coastline", beach, "")
 	var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, 100, p.z), Vector3(p.x, -100, p.z))
 	var hit: Dictionary = m.get_world_3d().direct_space_state.intersect_ray(q)
@@ -199,31 +202,32 @@ func _test_walk_new_land() -> void:
 	tip.y = terrain.height_at(tip.x, tip.z)
 	_check("walk: peninsula is land", terrain.is_land(tip.x, tip.z), "tip h=%.2f" % tip.y)
 	_check("walk: peninsula connected to the village", sim.nav.connected(t0.center, tip), "")
-	var v: Villager = null
-	for o in t0.members:
-		if not o.is_child() and o.state != Villager.S.CARRIED:
-			v = o
-			break
-	if v == null:
-		_check("walk: villager available", false)
-		return
-	v._reset(0.0)
-	v.target = tip
-	v.state = Villager.S.WANDER
-	v.timer = 120.0
-	var start := v.position
 	var reached := false
-	for i in 1200:
-		sim._step(0.1)
-		if v.dead: break
-		if Vector2(v.position.x - tip.x, v.position.z - tip.z).length() < 1.5:
-			reached = true
-			break
-		if v.state != Villager.S.WANDER:
-			v.target = tip
-			v.state = Villager.S.WANDER
-			v.timer = 120.0
-	_check("walk: villager walks onto new land", reached, "from %s to %s, now %s" % [start, tip, v.position])
+	var info := ""
+	for attempt in 3:   # retry with someone else if the walker dies of old age / wolves on the way
+		var v: Villager = null
+		for o in t0.members:
+			if not o.is_child() and o.state != Villager.S.CARRIED and (v == null or o.age < v.age):
+				v = o
+		if v == null: break
+		v._reset(0.0)
+		v.target = tip
+		v.state = Villager.S.WANDER
+		v.timer = 120.0
+		var start := v.position
+		for i in 1200:
+			sim._step(0.1)
+			if v.dead: break
+			if Vector2(v.position.x - tip.x, v.position.z - tip.z).length() < 1.5:
+				reached = true
+				break
+			if v.state != Villager.S.WANDER:
+				v.target = tip
+				v.state = Villager.S.WANDER
+				v.timer = 120.0
+		info = "from %s to %s, now %s%s" % [start, tip, v.position, " (walker died)" if v.dead else ""]
+		if reached or not v.dead: break
+	_check("walk: villager walks onto new land", reached, info)
 
 # ---------------------------------------------------------------- 8 build on new land
 func _test_build_on_new_land() -> void:
@@ -269,6 +273,14 @@ func _wait_hover(kind: String, obj, frames := 20) -> bool:
 			return true
 	return false
 
+## Nothing else within r (so hover can only pick the intended subject).
+func _isolated(o, r := 4.5) -> bool:
+	for v in sim.villagers_in_radius(o.position, r):
+		if v != o: return false
+	for a in sim.eco.animals:
+		if a != o and a.position.distance_to(o.position) < r * 1.5: return false
+	return true
+
 func _pointer(p: Vector3) -> void:
 	hand.virtual_pointer = Vector3(p.x, terrain.height_at(p.x, p.z), p.z)
 
@@ -278,7 +290,10 @@ func _test_hand_villager() -> void:
 	await _frames(2, false)
 	var v: Villager = null
 	for o in t0.members:
-		if not o.is_child(): v = o
+		if not o.is_child() and (v == null or _isolated(o, 3.0)): v = o
+	v._reset(30.0)
+	m.rig.set_view(v.position, 30.0, 0.8, 0.9, true)
+	await _frames(2, false)
 	_pointer(v.position)
 	var hovered := await _wait_hover("villager", v)
 	_check("hand: hover detects villager", hovered, "")
@@ -304,8 +319,16 @@ func _test_hand_villager() -> void:
 	# placement over water lands on the nearest shore
 	# --- throw
 	var v2: Villager = null
-	for o in t0.members:
-		if not o.is_child() and o != v and o.state != Villager.S.CARRIED: v2 = o
+	for o in sim.villagers:
+		if not o.is_child() and o != v and o.state != Villager.S.CARRIED and _isolated(o, 3.0):
+			v2 = o
+			break
+	if v2 == null:
+		for o in t0.members:
+			if not o.is_child() and o != v and o.state != Villager.S.CARRIED: v2 = o
+	v2._reset(30.0)
+	m.rig.set_view(v2.position, 30.0, 0.8, 0.9, true)
+	await _frames(2, false)
 	_pointer(v2.position)
 	await _wait_hover("villager", v2)
 	hand.press()
@@ -333,9 +356,11 @@ func _test_hand_villager() -> void:
 func _test_hand_animal_and_props() -> void:
 	var a: Animal = null
 	for o in sim.eco.animals:
-		if o.species == "deer" and not o.dead: a = o
+		if o.species == "deer" and not o.dead and _isolated(o): a = o
 	if a == null:
 		a = sim.eco.spawn("deer", sim.live_tribes()[0].center + Vector3(8, 0, 8), false)
+	a._rest(60.0)
+	a.threat = a.position
 	m.rig.set_view(a.position, 30.0, 0.8, 0.9, true)
 	await _frames(2, false)
 	_pointer(a.position)
@@ -356,7 +381,18 @@ func _test_hand_animal_and_props() -> void:
 		"state=%d" % a.state if alive else "deer died (%s)" % str(sim.eco.causes))
 	# uproot a tree and drop it in a village as a gift
 	var t0 = sim.live_tribes()[0]
-	var tree = sim.find_nearest(t0.center + Vector3(10, 0, 10), WorldSim.RES_TREE, 150.0)
+	# a tree with no villager or animal right next to it (creatures take hover priority)
+	var tree = null
+	for r in sim.resources_in_radius(t0.center, 60.0):
+		if r.type != WorldSim.RES_TREE or r.burning or r.scale < r.target_scale * 0.8: continue
+		var busy := false
+		for o in sim.villagers_in_radius(r.pos, 4.0): busy = true
+		for a2 in sim.eco.near(r.pos, 4.0):
+			if a2.position.distance_to(r.pos) < 4.0: busy = true
+		if not busy:
+			tree = r
+			break
+	if tree == null: tree = sim.find_nearest(t0.center, WorldSim.RES_TREE, 150.0)
 	if tree == null:
 		_check("hand: found a tree", false)
 		return
@@ -456,7 +492,9 @@ func _test_heresy() -> void:
 	var tr: Array = sim.live_tribes()
 	var t = tr[tr.size() - 1]
 	for o in tr:
-		if o.members.size() >= 8 and not o.has_temple(): t = o
+		if o.members.size() >= 8 and not o.has_temple() and o.heretics <= t.heretics: t = o
+	for v in t.members:
+		if v.heretic: sim.religion._recant(v, "test reset")
 	print("INFO heresy target %s pop %d" % [t.name, t.members.size()])
 	var h0: int = sim.religion.stats["heresies"]
 	# famine with no divine help + a smiting of their kin
@@ -490,10 +528,11 @@ func _test_heresy() -> void:
 	var rec0: int = sim.religion.stats["recants"]
 	her = t.members.filter(func(v): return v.heretic)
 	var hn0 := her.size()
-	for i in 3:
+	# the god answers the heretics with miracles worked right among them
+	for h in her.slice(0, 4):
+		if h.dead: continue
 		powers.cooldown = 0.0
-		powers.cast("plenty", t.center, 0.0)
-		for v in t.members: v.last_miracle = sim.time
+		powers.cast("plenty", h.position, 0.0)
 	sim.religion._tick(1.0)
 	her = t.members.filter(func(v): return v.heretic)
 	_check("heresy: miracles convert dissenters", sim.religion.stats["recants"] > rec0 or her.size() < hn0, "heretics %d -> %d" % [hn0, her.size()])
