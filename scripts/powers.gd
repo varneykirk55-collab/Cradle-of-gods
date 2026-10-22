@@ -7,19 +7,19 @@ signal power_changed(idx: int)
 signal flash(strength: float)
 
 const LIST := [
-	{"id": "raise", "name": "Raise Land", "key": "1", "icon": "res://assets/icons/raise.png", "color": Color(1.0, 0.85, 0.35),
+	{"id": "raise", "name": "Raise Land", "short": "Raise", "key": "1", "icon": "res://assets/icons/raise.png", "color": Color(1.0, 0.85, 0.35),
 		"desc": "Hold left mouse to lift the earth. Build hills, mountains and land bridges."},
-	{"id": "lower", "name": "Lower Land", "key": "2", "icon": "res://assets/icons/lower.png", "color": Color(0.9, 0.6, 0.3),
+	{"id": "lower", "name": "Lower Land", "short": "Lower", "key": "2", "icon": "res://assets/icons/lower.png", "color": Color(0.9, 0.6, 0.3),
 		"desc": "Hold left mouse to sink the earth. Carve valleys, lakes and seas (floods drown villages)."},
-	{"id": "villager", "name": "Create Life", "key": "3", "icon": "res://assets/icons/villager.png", "color": Color(1.0, 0.95, 0.6),
+	{"id": "villager", "name": "Create Life", "short": "Life", "key": "3", "icon": "res://assets/icons/villager.png", "color": Color(1.0, 0.95, 0.6),
 		"desc": "Click to create 3 villagers. Near a tribe they join it, far away they found a new tribe."},
-	{"id": "forest", "name": "Sow Forest", "key": "4", "icon": "res://assets/icons/forest.png", "color": Color(0.5, 1.0, 0.4),
+	{"id": "forest", "name": "Sow Forest", "short": "Forest", "key": "4", "icon": "res://assets/icons/forest.png", "color": Color(0.5, 1.0, 0.4),
 		"desc": "Hold left mouse to grow trees and berry bushes on fertile land."},
-	{"id": "rain", "name": "Blessed Rain", "key": "5", "icon": "res://assets/icons/rain.png", "color": Color(0.55, 0.8, 1.0),
+	{"id": "rain", "name": "Blessed Rain", "short": "Rain", "key": "5", "icon": "res://assets/icons/rain.png", "color": Color(0.55, 0.8, 1.0),
 		"desc": "Click to summon a rain cloud: fertile land, regrowth, fires extinguished, nearby tribes blessed with births."},
-	{"id": "lightning", "name": "Lightning", "key": "6", "icon": "res://assets/icons/lightning.png", "color": Color(0.7, 0.85, 1.0),
+	{"id": "lightning", "name": "Lightning", "short": "Lightning", "key": "6", "icon": "res://assets/icons/lightning.png", "color": Color(0.7, 0.85, 1.0),
 		"desc": "Click to smite: kills villagers and sets trees and buildings ablaze."},
-	{"id": "meteor", "name": "Meteor", "key": "7", "icon": "res://assets/icons/meteor.png", "color": Color(1.0, 0.45, 0.15),
+	{"id": "meteor", "name": "Meteor", "short": "Meteor", "key": "7", "icon": "res://assets/icons/meteor.png", "color": Color(1.0, 0.45, 0.15),
 		"desc": "Click to call down a meteor: a crater, a firestorm and utter destruction."},
 ]
 
@@ -158,12 +158,24 @@ func _lightning(p: Vector3) -> void:
 	m.emission_enabled = true
 	m.emission = Color(0.7, 0.85, 1.0)
 	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.09
-	cyl.bottom_radius = 0.09
+	cyl.top_radius = 0.16
+	cyl.bottom_radius = 0.16
 	cyl.height = 1.0
 	cyl.radial_segments = 5
 	cyl.rings = 1
 	cyl.material = m
+	var gm := StandardMaterial3D.new()
+	gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	gm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	gm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	gm.albedo_color = Color(0.4, 0.55, 1.0, 0.45)
+	var glow_cyl := CylinderMesh.new()
+	glow_cyl.top_radius = 0.5
+	glow_cyl.bottom_radius = 0.5
+	glow_cyl.height = 1.0
+	glow_cyl.radial_segments = 8
+	glow_cyl.rings = 1
+	glow_cyl.material = gm
 	var pts: Array = []
 	var top := p + Vector3(randf_range(-3, 3), 38.0, randf_range(-3, 3))
 	for i in 11:
@@ -181,6 +193,9 @@ func _lightning(p: Vector3) -> void:
 		seg.global_position = (a + b) * 0.5
 		var d := b - a
 		seg.global_transform.basis = Basis(Quaternion(Vector3.UP, (-d).normalized())).scaled(Vector3(1, d.length(), 1))
+		var glow := MeshInstance3D.new()
+		glow.mesh = glow_cyl
+		seg.add_child(glow)
 	var light := OmniLight3D.new()
 	light.light_color = Color(0.75, 0.85, 1.0)
 	light.light_energy = 10.0
@@ -203,6 +218,12 @@ func _lightning(p: Vector3) -> void:
 func _meteor(p: Vector3) -> void:
 	var rock := MeshInstance3D.new()
 	rock.mesh = Assets.mesh("meteor")
+	var mm := StandardMaterial3D.new()
+	mm.albedo_color = Color(0.35, 0.12, 0.05)
+	mm.emission_enabled = true
+	mm.emission = Color(1.0, 0.42, 0.1)
+	mm.emission_energy_multiplier = 1.6
+	rock.material_override = mm
 	sim.add_child(rock)
 	var start := p + Vector3(-30, 55, -22)
 	rock.global_position = start
@@ -248,15 +269,15 @@ func _impact(p: Vector3, rock: Node3D) -> void:
 func _rain(p: Vector3) -> void:
 	var cloud := Node3D.new()
 	sim.add_child(cloud)
-	cloud.global_position = p + Vector3(0, 16, 0)
+	cloud.global_position = p + Vector3(0, 13, 0)
 	var cm := StandardMaterial3D.new()
-	cm.albedo_color = Color(0.82, 0.85, 0.9, 0.92)
+	cm.albedo_color = Color(0.55, 0.6, 0.7, 0.8)
 	cm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	cm.roughness = 1.0
 	for i in 9:
 		var s := SphereMesh.new()
-		s.radius = randf_range(2.5, 4.0)
-		s.height = s.radius * 1.3
+		s.radius = randf_range(2.2, 3.6)
+		s.height = s.radius * 1.1
 		s.radial_segments = 10
 		s.rings = 6
 		s.material = cm

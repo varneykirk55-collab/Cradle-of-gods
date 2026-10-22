@@ -116,7 +116,7 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers) -> void:
 		b.mouse_entered.connect(_set_hover.bind(i))
 		b.mouse_exited.connect(_set_hover.bind(-1))
 		vb.add_child(b)
-		var l := _label("%s %s" % [d["key"], d["name"].split(" ")[-1]], 12)
+		var l := _label("%s %s" % [d["key"], d["short"]], 12)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vb.add_child(l)
 		power_buttons.append(b)

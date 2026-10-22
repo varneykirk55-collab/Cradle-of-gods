@@ -28,6 +28,7 @@ var seed_value := 0
 
 func _ready() -> void:
 	mat.vertex_color_use_as_albedo = true
+	mat.vertex_color_is_srgb = true
 	mat.roughness = 0.95
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	add_child(body)
@@ -150,14 +151,14 @@ func biome_color(h: float, slope: float, m: float, fert: float, rnd: float) -> C
 		Biome.ALPINE:
 			c = Color(0.44, 0.56, 0.32).lerp(Color(0.55, 0.55, 0.42), clampf((h - 8.0) / 4.0, 0.0, 1.0))
 		Biome.DRY:
-			c = Color(0.76, 0.72, 0.40).lerp(Color(0.52, 0.66, 0.30), m / 0.33)
+			c = Color(0.72, 0.68, 0.40).lerp(Color(0.50, 0.60, 0.30), m / 0.33)
 		Biome.GRASS:
-			c = Color(0.47, 0.70, 0.30).lerp(Color(0.36, 0.62, 0.26), (m - 0.33) / 0.27)
+			c = Color(0.46, 0.63, 0.29).lerp(Color(0.36, 0.56, 0.25), (m - 0.33) / 0.27)
 		_:
-			c = Color(0.27, 0.53, 0.23).lerp(Color(0.20, 0.44, 0.20), clampf((m - 0.6) / 0.4, 0.0, 1.0))
+			c = Color(0.27, 0.47, 0.22).lerp(Color(0.21, 0.40, 0.19), clampf((m - 0.6) / 0.4, 0.0, 1.0))
 	if b != Biome.DEEP and b != Biome.SHALLOW and b != Biome.SNOW:
 		if fert > 0.0:
-			c = c.lerp(Color(0.24, 0.66, 0.22), fert * 0.55)
+			c = c.lerp(Color(0.22, 0.58, 0.20), fert * 0.55)
 		elif fert < 0.0:
 			c = c.lerp(Color(0.16, 0.12, 0.10), -fert * 0.9)
 	return c * (0.93 + rnd * 0.12)
