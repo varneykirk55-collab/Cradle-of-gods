@@ -64,3 +64,45 @@ static func soft_texture() -> Texture2D:
 		t.height = 64
 		_soft_tex = t
 	return _soft_tex
+
+static var _parts := {}
+
+## Rigid multi-part models (villager_rig, deer, wolf, rabbit, bird): returns
+## {part_name: {"mesh": Mesh, "xform": Transform3D}} where xform is the part's
+## joint pivot relative to the model root.
+static func parts(model: String) -> Dictionary:
+	if _parts.has(model):
+		return _parts[model]
+	var ps: PackedScene = load("res://assets/models/%s.glb" % model)
+	var inst := ps.instantiate()
+	var out := {}
+	_collect(inst, inst, out)
+	inst.free()
+	_parts[model] = out
+	return out
+
+static func _collect(root: Node, n: Node, out: Dictionary) -> void:
+	if n is MeshInstance3D:
+		var xf := Transform3D.IDENTITY
+		var p := n as Node3D
+		while p != null and p != root:
+			xf = p.transform * xf
+			p = p.get_parent() as Node3D
+		out[n.name] = {"mesh": (n as MeshInstance3D).mesh, "xform": xf}
+	for c in n.get_children():
+		_collect(root, c, out)
+
+## Builds MeshInstance3D children for every part under `parent`; returns name -> node.
+static func build_parts(model: String, parent: Node3D, vis_range := 0.0) -> Dictionary:
+	var nodes := {}
+	var p := parts(model)
+	for k in p:
+		var mi := MeshInstance3D.new()
+		mi.name = k
+		mi.mesh = p[k]["mesh"]
+		mi.transform = p[k]["xform"]
+		if vis_range > 0.0:
+			mi.visibility_range_end = vis_range
+		parent.add_child(mi)
+		nodes[k] = mi
+	return nodes

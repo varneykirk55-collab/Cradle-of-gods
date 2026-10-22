@@ -1,7 +1,8 @@
 extends Node3D
 ## Entry point: builds the environment, terrain, water, simulation, camera,
-## powers and HUD; handles global hotkeys and the automated test / screenshot
-## modes (pass `-- --autotest` or `-- --shots` on the command line).
+## powers, God Hand and HUD; handles global hotkeys and starts the automated
+## test / screenshot modes (pass `-- --autotest` or `-- --shots`), which live
+## in scripts/autotest.gd and scripts/shots.gd.
 
 const SPEEDS := [0.0, 1.0, 2.0, 4.0]
 const SPEED_NAMES := ["paused", "1x", "2x", "4x"]
@@ -11,6 +12,7 @@ var sim: WorldSim
 var rig: CameraRig
 var powers: Powers
 var hud: Hud
+var hand: GodHand
 var speed_idx := 1
 var world_seed := 0
 var args := PackedStringArray()
@@ -37,17 +39,26 @@ func _ready() -> void:
 	add_child(rig)
 	var first: Vector3 = sim.tribes[0].center if not sim.tribes.is_empty() else Vector3.ZERO
 	rig.set_view(first, 55.0, 0.7, 0.8, true)
+	sim.cam = rig.cam
 	powers = Powers.new()
 	add_child(powers)
 	powers.setup(sim, terrain, rig)
+	hand = GodHand.new()
+	hand.name = "GodHand"
+	add_child(hand)
+	hand.setup(sim, terrain, rig, powers)
 	hud = Hud.new()
 	add_child(hud)
-	hud.setup(self, sim, powers)
+	hud.setup(self, sim, powers, hand)
 	if "--autotest" in args:
 		hud.splash.visible = false
-		_autotest()
+		var at := AutoTest.new()
+		add_child(at)
+		at.run(self)
 	elif "--shots" in args:
-		_shots()
+		var sh := Shots.new()
+		add_child(sh)
+		sh.run(self)
 
 func _has_seed_arg() -> bool:
 	for a in args:
@@ -100,7 +111,7 @@ void vertex() {
 }
 void fragment() {
 	float w = sin(wpos.x * 0.7 + TIME * 1.5) * cos(wpos.z * 0.6 + TIME * 1.1);
-	float edge = clamp(length(wpos.xz) / 140.0, 0.0, 1.0);
+	float edge = clamp(length(wpos.xz) / 210.0, 0.0, 1.0);
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
 	ALBEDO = mix(shallow.rgb, deep.rgb, 0.35 + edge * 0.5 + w * 0.06);
 	ALPHA = clamp(0.62 + fres * 0.3 + edge * 0.3, 0.0, 0.97);
@@ -119,6 +130,7 @@ void fragment() {
 	water.name = "Water"
 	water.mesh = pm
 	water.position = Vector3(0, Terrain.SEA - 0.12, 0)
+	pm.size = Vector2(900, 900)
 	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(water)
 	var floor_mat := StandardMaterial3D.new()
@@ -140,6 +152,11 @@ func speed_name() -> String:
 
 func _process(dt: float) -> void:
 	if "--autotest" in args: return  # autotest drives the sim explicitly
+	advance(dt)
+
+## Real time -> simulation time through the speed control.
+func advance(dt: float) -> void:
+	sim.cam_pos = rig.cam.global_position
 	sim.update(dt * SPEEDS[speed_idx])
 
 func _unhandled_input(e: InputEvent) -> void:
@@ -148,10 +165,20 @@ func _unhandled_input(e: InputEvent) -> void:
 		hud.hide_splash()
 		return
 	var k: int = e.keycode
-	if k >= KEY_1 and k <= KEY_7:
+	if k >= KEY_1 and k <= KEY_9:
 		powers.select(k - KEY_1)
-	elif k == KEY_ESCAPE:
+	elif k == KEY_0:
+		powers.select(9)
+	elif k == KEY_ESCAPE or k == KEY_QUOTELEFT:
 		if powers.current >= 0: powers.select(powers.current)
+	elif k == KEY_B:
+		powers.toggle_land_mode()
+	elif k == KEY_C:
+		powers.cycle_life()
+	elif k == KEY_V:
+		hud.set_faith_overlay(not sim.show_faith)
+	elif k == KEY_P:
+		hud.set_sandbox(not sim.religion.sandbox)
 	elif k == KEY_SPACE:
 		set_speed(1 if speed_idx == 0 else 0)
 	elif k == KEY_EQUAL or k == KEY_KP_ADD or k == KEY_PERIOD:
@@ -159,11 +186,9 @@ func _unhandled_input(e: InputEvent) -> void:
 	elif k == KEY_MINUS or k == KEY_KP_SUBTRACT or k == KEY_COMMA:
 		set_speed(maxi(speed_idx - 1, 0))
 	elif k == KEY_BRACKETLEFT:
-		powers.brush = maxf(2.0, powers.brush - 1.0)
-		hud._refresh_info()
+		powers.set_brush(powers.brush - 1.0)
 	elif k == KEY_BRACKETRIGHT:
-		powers.brush = minf(16.0, powers.brush + 1.0)
-		hud._refresh_info()
+		powers.set_brush(powers.brush + 1.0)
 	elif k == KEY_H or k == KEY_F1:
 		hud.toggle_help()
 	elif k == KEY_TAB:
@@ -175,10 +200,11 @@ func _unhandled_input(e: InputEvent) -> void:
 					idx = (i + 1) % tr.size()
 			rig.focus = tr[idx].center
 			rig.dist = 32.0
+			hud.show_tribe(tr[idx])
 	elif k == KEY_F12:
-		_save_shot("manual_%d" % Time.get_ticks_msec())
+		save_shot("manual_%d" % Time.get_ticks_msec())
 
-func _save_shot(name: String) -> void:
+func save_shot(name: String) -> void:
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://screenshots"))
@@ -186,244 +212,3 @@ func _save_shot(name: String) -> void:
 	img.save_png(path)
 	print("SCREENSHOT ", path)
 
-# ======================================================================= tests
-func _check(name: String, ok: bool, detail := "") -> bool:
-	print("%s  %s  %s" % ["PASS" if ok else "FAIL", name, detail])
-	return ok
-
-func _frames(n: int) -> void:
-	for i in n:
-		await get_tree().process_frame
-
-func _autotest() -> void:
-	var fails := 0
-	await _frames(2)
-	print("STAT ", sim.stat_line())
-	var pop0 := sim.population()
-	var b0 := sim.building_count()
-	for i in 10:
-		sim.prewarm(30.0)
-		print("STAT ", sim.stat_line())
-	if not _check("sim grows population", sim.population() > pop0, "%d -> %d" % [pop0, sim.population()]): fails += 1
-	if not _check("sim constructs buildings", sim.stats["built"] > b0, "built=%d" % sim.stats["built"]): fails += 1
-	var t0: WorldSim.Tribe = sim.live_tribes()[0]
-	# --- raise / lower terrain + collision
-	var p := t0.center + Vector3(14, 0, 0)
-	var h0 := terrain.height_at(p.x, p.z)
-	for i in 30: powers.cast(0, p, 1.0 / 30.0)
-	terrain.rebuild_dirty()
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	var h1 := terrain.height_at(p.x, p.z)
-	var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, 100, p.z), Vector3(p.x, -100, p.z))
-	var hit := get_world_3d().direct_space_state.intersect_ray(q)
-	var coll_y: float = hit["position"].y if not hit.is_empty() else -999.0
-	if not _check("raise terrain", h1 > h0 + 3.0, "%.2f -> %.2f" % [h0, h1]): fails += 1
-	if not _check("collision follows terrain", absf(coll_y - h1) < 0.6, "collider y=%.2f mesh y=%.2f" % [coll_y, h1]): fails += 1
-	for i in 30: powers.cast(1, p, 1.0 / 30.0)
-	var h2 := terrain.height_at(p.x, p.z)
-	if not _check("lower terrain", h2 < h1 - 3.0, "%.2f -> %.2f" % [h1, h2]): fails += 1
-	# --- spawn villagers
-	var popa := sim.population()
-	powers.cooldown = 0.0
-	powers.cast(2, t0.center + Vector3(2, 0, 2), 0.0)
-	if not _check("spawn villagers", sim.population() == popa + 3, "%d -> %d" % [popa, sim.population()]): fails += 1
-	var tribes_a := sim.live_tribes().size()
-	var far = sim.find_settle_spot(30.0)
-	if far != null:
-		powers.cooldown = 0.0
-		powers.cast(2, far, 0.0)
-		_check("spawn far away founds tribe", sim.live_tribes().size() == tribes_a + 1, "%d -> %d tribes" % [tribes_a, sim.live_tribes().size()])
-	# --- forest
-	var trees_a := sim.count_type(WorldSim.RES_TREE) + sim.count_type(WorldSim.RES_BUSH)
-	var fp = sim.find_settle_spot(10.0)
-	for i in 10:
-		powers.cooldown = 0.0
-		powers.cast(3, fp if fp != null else t0.center, 0.1)
-	var trees_b := sim.count_type(WorldSim.RES_TREE) + sim.count_type(WorldSim.RES_BUSH)
-	if not _check("sow forest", trees_b > trees_a, "%d -> %d plants" % [trees_a, trees_b]): fails += 1
-	# --- rain / bless
-	powers.cooldown = 0.0
-	var fert0 := terrain.fertility_at(t0.center.x, t0.center.z)
-	powers.cast(4, t0.center, 0.0)
-	if not _check("blessed rain", t0.blessed > 0.0 and terrain.fertility_at(t0.center.x, t0.center.z) > fert0, "blessed=%.0f fert %.2f->%.2f" % [t0.blessed, fert0, terrain.fertility_at(t0.center.x, t0.center.z)]): fails += 1
-	# --- lightning on a villager
-	var victim: Villager = t0.members[0]
-	var d0: int = sim.stats["deaths"]
-	powers.cooldown = 0.0
-	powers.cast(5, victim.position, 0.0)
-	if not _check("lightning kills", sim.stats["deaths"] > d0 and victim.dead, "deaths %d -> %d" % [d0, sim.stats["deaths"]]): fails += 1
-	var ftree = sim.find_nearest(Vector3.ZERO, WorldSim.RES_TREE, 200.0)
-	var trees_before := sim.count_type(WorldSim.RES_TREE)
-	if ftree != null:
-		powers.cooldown = 0.0
-		powers.cast(5, ftree.pos, 0.0)
-	if not _check("lightning ignites trees", sim.fires.size() > 0, "fires=%d" % sim.fires.size()): fails += 1
-	for i in 20: sim.update(0.5)
-	print("INFO after 10s of fire: fires=%d trees %d -> %d" % [sim.fires.size(), trees_before, sim.count_type(WorldSim.RES_TREE)])
-	# --- meteor on a village
-	var target: Vector3 = sim.live_tribes()[1].center if sim.live_tribes().size() > 1 else t0.center
-	var bb := sim.building_count()
-	var hm := terrain.height_at(target.x, target.z)
-	var d1: int = sim.stats["deaths"]
-	powers.cooldown = 0.0
-	powers.cast(6, target, 0.0)
-	await get_tree().create_timer(1.6).timeout
-	var ha := terrain.height_at(target.x, target.z)
-	if not _check("meteor destroys buildings", sim.building_count() < bb, "%d -> %d buildings" % [bb, sim.building_count()]): fails += 1
-	if not _check("meteor crater", ha < hm - 3.0, "height %.2f -> %.2f" % [hm, ha]): fails += 1
-	print("INFO meteor deaths: %d, fires now: %d" % [sim.stats["deaths"] - d1, sim.fires.size()])
-	# --- fire burns out over time
-	for i in 6:
-		sim.prewarm(10.0)
-		await _frames(1)
-		print("STAT ", sim.stat_line())
-	# --- long run stability
-	for i in 10:
-		sim.prewarm(30.0)
-		print("STAT ", sim.stat_line())
-	if not _check("world still alive after long run", sim.population() > 0, "pop=%d" % sim.population()): fails += 1
-	print("POWER CASTS ", powers.casts)
-	print("AUTOTEST DONE fails=%d" % fails)
-	get_tree().quit(0 if fails == 0 else 1)
-
-func _shots() -> void:
-	set_speed(1)
-	await _frames(8)
-	await _save_shot("01_title_splash")
-	hud.splash.visible = false
-	sim.prewarm(300.0)
-	terrain.rebuild_dirty()
-	rig.set_view(Vector3(0, 0, 0), 150.0, 0.6, 1.0, true)
-	await _frames(20)
-	await _save_shot("02_world_overview")
-	var tr := sim.live_tribes()
-	var t0: WorldSim.Tribe = tr[0]
-	rig.set_view(t0.center, 26.0, 0.9, 0.62, true)
-	await _frames(30)
-	await _save_shot("03_village_closeup")
-	hud.toggle_help()
-	await _frames(4)
-	await _save_shot("04_help_overlay")
-	hud.toggle_help()
-	# rain + bless
-	powers.select(4)
-	var t1: WorldSim.Tribe = tr[1] if tr.size() > 1 else t0
-	rig.set_view(t1.center, 45.0, 2.2, 0.55, true)
-	powers.cast(4, t1.center + Vector3(4, 0, 0), 0.0)
-	await _frames(40)
-	await _save_shot("05_blessed_rain")
-	# lightning into a forest near a village + fire
-	powers.select(5)
-	var tree = sim.find_nearest(t0.center, WorldSim.RES_TREE, 40.0)
-	var lp: Vector3 = tree.pos if tree != null else t0.center + Vector3(6, 0, 6)
-	rig.set_view(lp, 30.0, 0.4, 0.6, true)
-	powers.cooldown = 0.0
-	powers.cast(5, lp, 0.0)
-	await _frames(2)
-	await _save_shot("06_lightning")
-	for i in 3:
-		sim.update(0.5)
-		await _frames(1)
-	await _save_shot("07_forest_fire")
-	# meteor on a village
-	powers.select(6)
-	var t2: WorldSim.Tribe = tr[tr.size() - 1]
-	rig.set_view(t2.center, 55.0, 1.4, 0.65, true)
-	await _frames(4)
-	await _save_shot("08_before_meteor")
-	powers.cooldown = 0.0
-	powers.cast(6, t2.center, 0.0)
-	await get_tree().create_timer(0.85).timeout
-	await _save_shot("09_meteor_falling")
-	await get_tree().create_timer(0.5).timeout
-	await _save_shot("10_meteor_impact")
-	await get_tree().create_timer(2.5).timeout
-	await _save_shot("11_crater")
-	# terrain sculpting
-	powers.select(0)
-	var mp := t0.center + Vector3(-16, 0, 10)
-	for i in 60: powers.cast(0, mp, 1.0 / 30.0)
-	for i in 20: powers.cast(1, mp + Vector3(10, 0, -6), 1.0 / 30.0)
-	rig.set_view(mp, 60.0, 0.5, 0.7, true)
-	await _frames(10)
-	await _save_shot("12_terrain_sculpt")
-	await _input_test()
-	print("SHOTS DONE ", sim.stat_line())
-	get_tree().quit()
-
-## Drives the game through synthetic OS-level input events (keyboard + mouse),
-## exercising the same code paths a player uses.
-func _input_test() -> void:
-	var t0: WorldSim.Tribe = sim.live_tribes()[0]
-	rig.set_view(t0.center, 40.0, 0.8, 0.8, true)
-	await _frames(5)
-	var center := get_viewport().get_visible_rect().size * 0.5
-	# keyboard pan
-	var f0 := rig.focus
-	_key(KEY_W, true)
-	await _frames(15)
-	_key(KEY_W, false)
-	_check("input: W pans camera", rig.focus.distance_to(f0) > 2.0, "moved %.1f" % rig.focus.distance_to(f0))
-	# wheel zoom
-	var d0 := rig.dist
-	_mouse_button(MOUSE_BUTTON_WHEEL_UP, center, true)
-	_mouse_button(MOUSE_BUTTON_WHEEL_UP, center, false)
-	await _frames(2)
-	_check("input: wheel zooms", rig.dist < d0, "%.1f -> %.1f" % [d0, rig.dist])
-	# right-drag orbit
-	var y0 := rig.yaw
-	_mouse_button(MOUSE_BUTTON_RIGHT, center, true)
-	var mm := InputEventMouseMotion.new()
-	mm.position = center + Vector2(120, 0)
-	mm.relative = Vector2(120, 0)
-	mm.button_mask = MOUSE_BUTTON_MASK_RIGHT
-	Input.parse_input_event(mm)
-	await _frames(2)
-	_mouse_button(MOUSE_BUTTON_RIGHT, center + Vector2(120, 0), false)
-	_check("input: right-drag orbits", absf(rig.yaw - y0) > 0.3, "yaw %.2f -> %.2f" % [y0, rig.yaw])
-	rig.set_view(t0.center + Vector3(3, 0, 3), 30.0, 0.8, 0.9, true)
-	await _frames(20)
-	print("INFO fps under this renderer: %.1f" % Engine.get_frames_per_second())
-	# hotkey 3 + left click at screen centre spawns villagers
-	_key(KEY_3, true)
-	_key(KEY_3, false)
-	await _frames(2)
-	_check("input: key 3 selects Create Life", powers.current == 2, "current=%d" % powers.current)
-	var pop0 := sim.population()
-	powers.cooldown = 0.0
-	var ground = powers.pick(center)
-	_mouse_button(MOUSE_BUTTON_LEFT, center, true)
-	await _frames(1)
-	_mouse_button(MOUSE_BUTTON_LEFT, center, false)
-	await _frames(3)
-	_check("input: click casts power", sim.population() == pop0 + 3, "pop %d -> %d (ground=%s)" % [pop0, sim.population(), ground])
-	await _save_shot("13_input_spawn")
-	# toolbar button click (Meteor icon) via real GUI hit-testing
-	var btn: Button = hud.power_buttons[6]
-	var bc := btn.get_global_rect().get_center()
-	_mouse_button(MOUSE_BUTTON_LEFT, bc, true)
-	_mouse_button(MOUSE_BUTTON_LEFT, bc, false)
-	await _frames(2)
-	_check("input: clicking toolbar icon selects power", powers.current == 6, "current=%d" % powers.current)
-	# space pauses
-	_key(KEY_SPACE, true)
-	_key(KEY_SPACE, false)
-	await _frames(2)
-	_check("input: space pauses", speed_idx == 0, "speed=%s" % speed_name())
-
-func _key(k: Key, pressed: bool) -> void:
-	var e := InputEventKey.new()
-	e.keycode = k
-	e.physical_keycode = k
-	e.pressed = pressed
-	Input.parse_input_event(e)
-
-func _mouse_button(b: MouseButton, pos: Vector2, pressed: bool) -> void:
-	var e := InputEventMouseButton.new()
-	e.button_index = b
-	e.position = pos
-	e.global_position = pos
-	e.pressed = pressed
-	Input.warp_mouse(pos)
-	Input.parse_input_event(e)

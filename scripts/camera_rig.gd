@@ -16,9 +16,9 @@ var _pitch := 0.85
 var _dist := 70.0
 var dragging := false
 var shake_amt := 0.0
-const BOUND := 76.0
+const BOUND := Terrain.HALF - 6.0
 const MIN_D := 7.0
-const MAX_D := 170.0
+const MAX_D := 230.0
 
 func _ready() -> void:
 	cam.fov = 50.0

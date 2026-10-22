@@ -1,11 +1,14 @@
 class_name Hud
 extends CanvasLayer
-## On-screen UI: stats, tribe list, power toolbar (generated icons + hotkeys),
-## time-speed buttons, tooltip/info box, event log, help overlay, title splash.
+## On-screen UI: world / religion / wildlife stats, prayer-power bar, tribe
+## list (click to visit), settlement panel, divine toolbar (God Hand + 10
+## powers), land-mode / brush-size / life-type options, time-speed buttons,
+## God Hand hover tooltip, event log, toasts, help overlay and title splash.
 
 var main
 var sim: WorldSim
 var powers: Powers
+var hand: GodHand
 var stats_label: Label
 var tribe_box: VBoxContainer
 var info_title: Label
@@ -14,13 +17,34 @@ var log_box: VBoxContainer
 var help: PanelContainer
 var splash: Control
 var flash_rect: ColorRect
+var tooltip: PanelContainer
+var tooltip_label: Label
+var toast: Label
+var prayer_bar: ProgressBar
+var prayer_label: Label
+var sandbox_box: CheckBox
+var faith_box: CheckBox
+var options_row: HBoxContainer
+var land_mode_buttons: Array = []
+var brush_row: HBoxContainer
+var brush_slider: HSlider
+var brush_label: Label
+var life_row: HBoxContainer
+var life_option: OptionButton
+var settle_panel: PanelContainer
+var settle_label: Label
+var settle_title: Label
+var settle_tribe = null
+var hand_button: Button
 var power_buttons: Array = []
 var speed_buttons: Array = []
 var _acc := 0.0
 var _hover := -1
+var _hover_text := ""
 
 const GOLD := Color(0.86, 0.7, 0.38)
 const PANEL_BG := Color(0.05, 0.07, 0.13, 0.82)
+const HERETIC := Color(0.78, 0.5, 1.0)
 
 func _panel_style(radius := 8) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
@@ -49,52 +73,151 @@ func _label(text: String, size := 15, color := Color(0.95, 0.92, 0.85)) -> Label
 	l.add_theme_constant_override("outline_size", 3)
 	return l
 
-func setup(p_main, p_sim: WorldSim, p_powers: Powers) -> void:
+func _btn_style(pressed: bool, hover := false) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.25, 0.2, 0.08, 0.95) if pressed else (Color(0.16, 0.18, 0.28, 0.95) if hover else Color(0.09, 0.11, 0.2, 0.95))
+	sb.border_color = Color(1.0, 0.85, 0.4) if pressed else GOLD.darkened(0.3)
+	sb.set_border_width_all(3 if pressed else 1)
+	sb.set_corner_radius_all(6)
+	sb.set_content_margin_all(3)
+	return sb
+
+func _style_button(b: BaseButton) -> void:
+	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_stylebox_override("normal", _btn_style(false))
+	b.add_theme_stylebox_override("hover", _btn_style(false, true))
+	b.add_theme_stylebox_override("pressed", _btn_style(true))
+	b.add_theme_stylebox_override("hover_pressed", _btn_style(true))
+
+func _small_button(text: String, tip: String) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.tooltip_text = tip
+	b.toggle_mode = true
+	b.custom_minimum_size = Vector2(56, 26)
+	b.add_theme_font_size_override("font_size", 13)
+	_style_button(b)
+	return b
+
+func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 	main = p_main
 	sim = p_sim
 	powers = p_powers
+	hand = p_hand
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 
-	# --- top-left stats
+	# --- top-left stats + prayer
 	var sp := _panel()
 	sp.position = Vector2(12, 12)
 	root.add_child(sp)
 	var sv := VBoxContainer.new()
 	sp.add_child(sv)
 	sv.add_child(_label("CRADLE OF GODS", 20, GOLD))
-	stats_label = _label("", 15)
+	stats_label = _label("", 14)
 	sv.add_child(stats_label)
+	var pr := HBoxContainer.new()
+	sv.add_child(pr)
+	pr.add_child(_label("Prayer", 13, GOLD))
+	prayer_bar = ProgressBar.new()
+	prayer_bar.max_value = Religion.PRAYER_CAP
+	prayer_bar.show_percentage = false
+	prayer_bar.custom_minimum_size = Vector2(150, 14)
+	prayer_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(1.0, 0.8, 0.35)
+	fill.set_corner_radius_all(4)
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.15, 0.14, 0.2)
+	bg.set_corner_radius_all(4)
+	prayer_bar.add_theme_stylebox_override("fill", fill)
+	prayer_bar.add_theme_stylebox_override("background", bg)
+	pr.add_child(prayer_bar)
+	prayer_label = _label("", 13)
+	pr.add_child(prayer_label)
+	var opts := HBoxContainer.new()
+	sv.add_child(opts)
+	sandbox_box = CheckBox.new()
+	sandbox_box.text = "Infinite prayer [P]"
+	sandbox_box.focus_mode = Control.FOCUS_NONE
+	sandbox_box.add_theme_font_size_override("font_size", 12)
+	sandbox_box.toggled.connect(func(on): sim.religion.sandbox = on)
+	opts.add_child(sandbox_box)
+	faith_box = CheckBox.new()
+	faith_box.text = "Faith overlay [V]"
+	faith_box.focus_mode = Control.FOCUS_NONE
+	faith_box.add_theme_font_size_override("font_size", 12)
+	faith_box.toggled.connect(func(on): set_faith_overlay(on))
+	opts.add_child(faith_box)
 
 	# --- top-right tribes
 	var tp := _panel()
 	tp.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	tp.offset_left = -330
+	tp.offset_left = -360
 	tp.offset_right = -12
 	tp.offset_top = 12
 	tp.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	root.add_child(tp)
 	var tv := VBoxContainer.new()
 	tp.add_child(tv)
-	tv.add_child(_label("TRIBES", 17, GOLD))
+	tv.add_child(_label("SETTLEMENTS  (click to visit)", 15, GOLD))
 	tribe_box = VBoxContainer.new()
-	tribe_box.add_theme_constant_override("separation", 4)
+	tribe_box.add_theme_constant_override("separation", 2)
 	tv.add_child(tribe_box)
+
+	# --- settlement panel (right, below the list)
+	settle_panel = _panel()
+	settle_panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	settle_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	settle_panel.offset_right = -12
+	settle_panel.offset_top = 40
+	root.add_child(settle_panel)
+	var sbx := VBoxContainer.new()
+	settle_panel.add_child(sbx)
+	var sh := HBoxContainer.new()
+	sbx.add_child(sh)
+	settle_title = _label("", 17, GOLD)
+	settle_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sh.add_child(settle_title)
+	var close := Button.new()
+	close.text = "x"
+	_style_button(close)
+	close.pressed.connect(func(): settle_panel.visible = false)
+	sh.add_child(close)
+	settle_label = _label("", 13)
+	sbx.add_child(settle_label)
+	settle_panel.visible = false
 
 	# --- bottom toolbar
 	var bar := _panel()
 	bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	bar.offset_bottom = -12
+	bar.offset_bottom = -10
 	root.add_child(bar)
 	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 6)
+	hb.add_theme_constant_override("separation", 4)
 	bar.add_child(hb)
-	var group := ButtonGroup.new()
-	group.allow_unpress = true
+	var hv := VBoxContainer.new()
+	hv.add_theme_constant_override("separation", 0)
+	hb.add_child(hv)
+	hand_button = Button.new()
+	hand_button.toggle_mode = true
+	hand_button.icon = load("res://assets/icons/hand.png")
+	hand_button.expand_icon = true
+	hand_button.custom_minimum_size = Vector2(62, 62)
+	hand_button.tooltip_text = "God Hand  [Esc / `]\nGrab, carry, place and throw villagers, animals, trees and rocks.\nDrag empty ground to pull the world. Click a building for settlement info."
+	_style_button(hand_button)
+	hand_button.pressed.connect(func(): if powers.current >= 0: powers.select(powers.current))
+	hand_button.mouse_entered.connect(_set_hover.bind(-2))
+	hand_button.mouse_exited.connect(_set_hover.bind(-1))
+	hv.add_child(hand_button)
+	var hl := _label("` Hand", 11)
+	hl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hv.add_child(hl)
+	hb.add_child(VSeparator.new())
 	for i in Powers.LIST.size():
 		var d: Dictionary = Powers.LIST[i]
 		var vb := VBoxContainer.new()
@@ -102,26 +225,21 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers) -> void:
 		hb.add_child(vb)
 		var b := Button.new()
 		b.toggle_mode = true
-		b.button_group = group
-		b.focus_mode = Control.FOCUS_NONE
 		b.icon = load(d["icon"])
 		b.expand_icon = true
-		b.custom_minimum_size = Vector2(68, 68)
-		b.tooltip_text = "%s  [%s]\n%s" % [d["name"], d["key"], d["desc"]]
-		b.add_theme_stylebox_override("normal", _btn_style(false))
-		b.add_theme_stylebox_override("hover", _btn_style(false, true))
-		b.add_theme_stylebox_override("pressed", _btn_style(true))
-		b.add_theme_stylebox_override("hover_pressed", _btn_style(true))
+		b.custom_minimum_size = Vector2(62, 62)
+		var cost := "" if d["cost"] <= 0.0 else "\nCost: %d prayer" % int(d["cost"])
+		b.tooltip_text = "%s  [%s]\n%s%s" % [d["name"], d["key"], d["desc"], cost]
+		_style_button(b)
 		b.pressed.connect(func(): _on_power_button(i))
 		b.mouse_entered.connect(_set_hover.bind(i))
 		b.mouse_exited.connect(_set_hover.bind(-1))
 		vb.add_child(b)
-		var l := _label("%s %s" % [d["key"], d["short"]], 12)
+		var l := _label("%s %s" % [d["key"], d["short"]], 11)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vb.add_child(l)
 		power_buttons.append(b)
-	var sep := VSeparator.new()
-	hb.add_child(sep)
+	hb.add_child(VSeparator.new())
 	var spd := VBoxContainer.new()
 	hb.add_child(spd)
 	spd.add_child(_label("TIME", 12, GOLD))
@@ -135,35 +253,65 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers) -> void:
 		b.text = names[i]
 		b.toggle_mode = true
 		b.button_group = sg
-		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(40, 28)
+		b.custom_minimum_size = Vector2(38, 26)
 		b.tooltip_text = ["Pause (Space)", "Normal speed", "Double speed", "Quadruple speed"][i]
-		b.add_theme_stylebox_override("normal", _btn_style(false))
-		b.add_theme_stylebox_override("hover", _btn_style(false, true))
-		b.add_theme_stylebox_override("pressed", _btn_style(true))
+		_style_button(b)
 		b.pressed.connect(func(): main.set_speed(i))
 		sgrid.add_child(b)
 		speed_buttons.append(b)
 
-	# --- info / tooltip box above toolbar
+	# --- info / options box above toolbar
 	var ip := _panel()
 	ip.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	ip.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	ip.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	ip.offset_bottom = -126
-	ip.custom_minimum_size = Vector2(560, 0)
-	ip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ip.offset_bottom = -116
+	ip.custom_minimum_size = Vector2(640, 0)
 	root.add_child(ip)
 	var iv := VBoxContainer.new()
 	ip.add_child(iv)
-	info_title = _label("", 17, GOLD)
+	info_title = _label("", 16, GOLD)
 	info_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	iv.add_child(info_title)
-	info_desc = _label("", 14)
+	info_desc = _label("", 13)
 	info_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	info_desc.custom_minimum_size = Vector2(540, 0)
+	info_desc.custom_minimum_size = Vector2(620, 0)
 	iv.add_child(info_desc)
+	options_row = HBoxContainer.new()
+	options_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	options_row.add_theme_constant_override("separation", 10)
+	iv.add_child(options_row)
+	var lg := ButtonGroup.new()
+	for m in ["brush", "tile"]:
+		var b := _small_button(m.capitalize(), "Land creation mode [B]: %s" % ("paint land continuously" if m == "brush" else "place connected square tiles"))
+		b.button_group = lg
+		b.pressed.connect(func(): if powers.land_mode != m: powers.toggle_land_mode())
+		options_row.add_child(b)
+		land_mode_buttons.append(b)
+	brush_row = HBoxContainer.new()
+	options_row.add_child(brush_row)
+	brush_row.add_child(_label("Brush", 13, GOLD))
+	brush_slider = HSlider.new()
+	brush_slider.min_value = Powers.BRUSH_MIN
+	brush_slider.max_value = Powers.BRUSH_MAX
+	brush_slider.step = 1.0
+	brush_slider.value = powers.brush
+	brush_slider.custom_minimum_size = Vector2(160, 20)
+	brush_slider.focus_mode = Control.FOCUS_NONE
+	brush_slider.value_changed.connect(func(v): powers.set_brush(v))
+	brush_row.add_child(brush_slider)
+	brush_label = _label("", 13)
+	brush_row.add_child(brush_label)
+	life_row = HBoxContainer.new()
+	options_row.add_child(life_row)
+	life_row.add_child(_label("Create [C]", 13, GOLD))
+	life_option = OptionButton.new()
+	life_option.focus_mode = Control.FOCUS_NONE
+	for t in Powers.LIFE_TYPES:
+		life_option.add_item(Powers.LIFE_NAMES[t])
+	life_option.item_selected.connect(_on_life_selected)
+	life_row.add_child(life_option)
 
 	# --- event log (bottom-left)
 	log_box = VBoxContainer.new()
@@ -176,27 +324,35 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers) -> void:
 	root.add_child(log_box)
 	sim.event_logged.connect(_on_event)
 
+	# --- hand tooltip + toast
+	tooltip = _panel()
+	tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tooltip_label = _label("", 13)
+	tooltip.add_child(tooltip_label)
+	tooltip.visible = false
+	root.add_child(tooltip)
+	toast = _label("", 18, Color(1.0, 0.85, 0.6))
+	toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	toast.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	toast.offset_top = 90
+	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast.modulate.a = 0.0
+	root.add_child(toast)
+	hand.hover_changed.connect(func(t): _hover_text = t)
+	hand.settlement_clicked.connect(show_tribe)
+	powers.message.connect(show_toast)
+
 	# --- help overlay
 	help = _panel()
 	help.set_anchors_preset(Control.PRESET_CENTER)
 	help.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	help.grow_vertical = Control.GROW_DIRECTION_BOTH
 	root.add_child(help)
-	var hv := VBoxContainer.new()
-	help.add_child(hv)
-	hv.add_child(_label("HOW TO PLAY", 22, GOLD))
-	hv.add_child(_label(
-		"You are a god watching over a young world. Tribes gather wood, stone and\n" +
-		"food, build huts that become stone houses, grow, and send settlers to found\n" +
-		"new villages. Nurture them or smite them.\n\n" +
-		"CAMERA   WASD / Arrows: pan    Q / E: rotate    Mouse wheel or R / F: zoom\n" +
-		"         Right or middle mouse drag: orbit    Shift: pan faster\n" +
-		"         Tab: jump to next tribe\n" +
-		"POWERS   1-7 or click an icon, then left-click (hold for land & forest)\n" +
-		"         [ / ]: brush size    Esc: deselect power\n" +
-		"TIME     Space: pause    - / +: slower / faster\n" +
-		"OTHER    H or F1: toggle this help    F12: screenshot", 15))
-	hv.add_child(_label("Press H to close", 13, GOLD))
+	var hvb := VBoxContainer.new()
+	help.add_child(hvb)
+	hvb.add_child(_label("HOW TO PLAY", 22, GOLD))
+	hvb.add_child(_label(HELP_TEXT, 14))
+	hvb.add_child(_label("Press H to close", 13, GOLD))
 	help.visible = false
 
 	# --- flash overlay (lightning / meteor)
@@ -226,7 +382,7 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers) -> void:
 	title.offset_top = 60
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	splash.add_child(title)
-	var sub := _label("Shape the land. Shepherd the tribes. Unleash the heavens.\n\nClick or press any key to begin", 24, Color(1, 1, 1))
+	var sub := _label("Shape the land. Shepherd the faithful. Punish the heretic.\n\nClick or press any key to begin", 24, Color(1, 1, 1))
 	sub.add_theme_constant_override("outline_size", 8)
 	sub.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	sub.grow_horizontal = Control.GROW_DIRECTION_BOTH
@@ -237,17 +393,29 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers) -> void:
 	splash.gui_input.connect(_on_splash_input)
 
 	speed_buttons[1].button_pressed = true
-	_refresh_info()
+	_on_power_changed(powers.current)
 	_update_stats()
 
-func _btn_style(pressed: bool, hover := false) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.25, 0.2, 0.08, 0.95) if pressed else (Color(0.16, 0.18, 0.28, 0.95) if hover else Color(0.09, 0.11, 0.2, 0.95))
-	sb.border_color = Color(1.0, 0.85, 0.4) if pressed else GOLD.darkened(0.3)
-	sb.set_border_width_all(3 if pressed else 1)
-	sb.set_corner_radius_all(6)
-	sb.set_content_margin_all(3)
-	return sb
+const HELP_TEXT := """You are a god watching over a young world. Tribes gather, build, worship and grow.
+Win their faith with miracles; heretics arise from famine, neglect and cruelty.
+
+GOD HAND (no power selected - Esc or ` returns to the hand)
+  Left-drag a villager / animal / tree / rock / bush   pick it up and carry it
+  Release slowly   set it down gently        Flick the mouse + release   throw it
+  Drop a tree, rock or bush in a village   a gift of wood, stone or food (faith!)
+  Left-drag empty ground   pull the world (pan)     Click a building   settlement info
+CAMERA   WASD / Arrows pan (Shift faster)   Q / E rotate   Wheel or R / F zoom
+         Right- or middle-drag orbit        Tab next settlement
+POWERS   1 Land  2 Remove  3 Raise  4 Lower  5 Life  6 Forest  7 Rain  8 Plenty
+         9 Lightning  0 Meteor     then left-click / hold on the world
+         B land mode (brush / tile)    C life type    [ / ] brush size
+RELIGION P infinite prayer (sandbox)   V faith overlay (gold = devout, white = priest,
+         purple = heretic)   Miracles cost prayer, worship at shrines produces it
+TIME     Space pause   - / + slower / faster       H or F1 help   F12 screenshot"""
+
+func _on_life_selected(i: int) -> void:
+	powers.life_type = Powers.LIFE_TYPES[i]
+	_refresh_info()
 
 func _set_hover(i: int) -> void:
 	_hover = i
@@ -273,23 +441,61 @@ func toggle_help() -> void:
 func set_speed_button(i: int) -> void:
 	speed_buttons[i].set_pressed_no_signal(true)
 
+func set_faith_overlay(on: bool) -> void:
+	sim.show_faith = on
+	faith_box.set_pressed_no_signal(on)
+	for v in sim.villagers:
+		v._update_marker()
+
+func set_sandbox(on: bool) -> void:
+	sim.religion.sandbox = on
+	sandbox_box.set_pressed_no_signal(on)
+
+func show_toast(text: String) -> void:
+	toast.text = text
+	toast.modulate.a = 1.0
+	var tw := toast.create_tween()
+	tw.tween_interval(2.0)
+	tw.tween_property(toast, "modulate:a", 0.0, 0.8)
+
+func show_tribe(t) -> void:
+	settle_tribe = t
+	settle_panel.visible = t != null
+	_update_settlement()
+
 func _on_power_button(i: int) -> void:
 	powers.select(i)
 
 func _on_power_changed(idx: int) -> void:
 	for i in power_buttons.size():
 		power_buttons[i].set_pressed_no_signal(i == idx)
+	hand_button.set_pressed_no_signal(idx < 0)
+	var id := powers.current_id()
+	land_mode_buttons[0].get_parent().visible = true
+	for b in land_mode_buttons:
+		b.visible = id == "land"
+	land_mode_buttons[0].set_pressed_no_signal(powers.land_mode == "brush")
+	land_mode_buttons[1].set_pressed_no_signal(powers.land_mode == "tile")
+	brush_row.visible = id in ["land", "remove", "raise", "lower", "forest"] and not (id == "land" and powers.land_mode == "tile")
+	brush_slider.set_value_no_signal(powers.brush)
+	brush_label.text = "%d" % int(powers.brush)
+	life_row.visible = id == "villager"
+	life_option.select(Powers.LIFE_TYPES.find(powers.life_type))
 	_refresh_info()
 
 func _refresh_info() -> void:
 	var i := _hover if _hover >= 0 else powers.current
-	if i < 0:
-		info_title.text = "No power selected"
-		info_desc.text = "Pick a divine power (1-7) and click the world. Right-drag to orbit, wheel to zoom."
+	if _hover == -2 or i < 0:
+		info_title.text = "God Hand"
+		info_desc.text = "Left-drag villagers, animals, trees and rocks to carry them; flick to throw. Drag the ground to pan, click buildings for info. Pick a power with 1-0."
 	else:
 		var d: Dictionary = Powers.LIST[i]
+		var extra := ""
+		if d["id"] == "land": extra = "  Mode: %s." % powers.land_mode.capitalize()
+		if d["id"] == "villager": extra = "  Creating: %s." % Powers.LIFE_NAMES[powers.life_type]
+		if d["cost"] > 0.0: extra += "  Cost %d prayer." % int(d["cost"])
 		info_title.text = "%s  [%s]%s" % [d["name"], d["key"], "  - selected" if i == powers.current else ""]
-		info_desc.text = d["desc"] + ("  Brush: %.0f" % powers.brush if d["id"] in ["raise", "lower", "forest"] else "")
+		info_desc.text = d["desc"] + extra
 
 func _on_flash(strength: float) -> void:
 	flash_rect.color = Color(1, 1, 1, strength)
@@ -297,12 +503,12 @@ func _on_flash(strength: float) -> void:
 	tw.tween_property(flash_rect, "color:a", 0.0, 0.4)
 
 func _on_event(text: String, color: Color) -> void:
-	var l := _label(text, 14, color.lightened(0.25))
+	var l := _label(text, 13, color.lightened(0.25))
 	log_box.add_child(l)
-	while log_box.get_child_count() > 7:
+	while log_box.get_child_count() > 8:
 		log_box.get_child(0).free()
 	var tw := l.create_tween()
-	tw.tween_interval(9.0)
+	tw.tween_interval(10.0)
 	tw.tween_property(l, "modulate:a", 0.0, 1.5)
 	tw.tween_callback(l.queue_free)
 
@@ -311,31 +517,103 @@ func _process(dt: float) -> void:
 	if _acc > 0.25:
 		_acc = 0.0
 		_update_stats()
+		if settle_panel.visible: _update_settlement()
+	if _hover_text != "" and not splash.visible:
+		tooltip.visible = true
+		tooltip_label.text = _hover_text
+		var mp := get_viewport().get_mouse_position()
+		var vs := get_viewport().get_visible_rect().size
+		tooltip.position = Vector2(minf(mp.x + 28, vs.x - tooltip.size.x - 8), minf(mp.y + 24, vs.y - tooltip.size.y - 8))
+	else:
+		tooltip.visible = false
 
 func _update_stats() -> void:
 	var tr := sim.live_tribes()
 	var day := int(sim.time / 60.0) + 1
-	stats_label.text = "Year %d   (%s)\nPopulation: %d\nTribes: %d   Buildings: %d\nTrees: %d   Fires: %d\nPower: %s" % [
+	var rt := sim.religion.totals()
+	var ac := sim.eco.counts()
+	stats_label.text = "Year %d   (%s)\nPopulation %d   Settlements %d\nBuildings %d   Trees %d   Fires %d\nWorshippers %d   Heretics %d   Priests %d\nShrines %d   Temples %d   Avg faith %d%%\nDeer %d  Rabbits %d  Wolves %d  Birds %d\nTool: %s" % [
 		day, main.speed_name(), sim.population(), tr.size(), sim.building_count(), sim.count_type(WorldSim.RES_TREE),
-		sim.fires.size(), Powers.LIST[powers.current]["name"] if powers.current >= 0 else "none"]
+		sim.fires.size(), rt["worshippers"], rt["heretics"], rt["priests"], rt["shrines"], rt["temples"], int(rt["avg_faith"]),
+		ac["deer"], ac["rabbit"], ac["wolf"], ac["bird"],
+		Powers.LIST[powers.current]["name"] if powers.current >= 0 else "God Hand"]
+	prayer_bar.value = sim.religion.prayer
+	prayer_label.text = "inf" if sim.religion.sandbox else "%d" % int(sim.religion.prayer)
 	var rows := tribe_box.get_children()
 	for i in maxi(rows.size(), tr.size()):
 		if i >= tr.size():
 			rows[i].visible = false
 			continue
-		var row: HBoxContainer
+		var row: Button
 		if i < rows.size():
 			row = rows[i]
 		else:
-			row = HBoxContainer.new()
-			var sw := ColorRect.new()
-			sw.custom_minimum_size = Vector2(14, 14)
-			sw.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			row.add_child(sw)
-			row.add_child(_label("", 14))
+			row = Button.new()
+			row.flat = true
+			row.focus_mode = Control.FOCUS_NONE
+			row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			row.add_theme_font_size_override("font_size", 13)
+			row.icon = _swatch()
+			row.pressed.connect(_on_tribe_row.bind(i))
 			tribe_box.add_child(row)
 		row.visible = true
 		var t = tr[i]
-		(row.get_child(0) as ColorRect).color = t.color
-		(row.get_child(1) as Label).text = "%s (%s)%s  pop %d\n  wood %d  stone %d  food %d" % [
-			t.name, t.stage, " *blessed*" if t.blessed > 0.0 else "", t.members.size(), t.wood, t.stone, t.food]
+		row.add_theme_color_override("font_color", HERETIC.lightened(0.2) if t.heretical else Color(0.95, 0.92, 0.85))
+		row.add_theme_color_override("icon_normal_color", t.color)
+		var holy: String = (" [Temple]" if t.has_temple() else (" [Shrine]" if t.has_shrine() else ""))
+		var warn: String = "  ! heresy %d%%" % int(t.tension * 100) if t.heretics > 0 and t.tension >= 0.15 else ""
+		row.text = "%s (%s)%s  pop %d%s\n  %s %d%%  worship %d  heretics %d%s%s" % [
+			t.name, t.stage, holy, t.members.size(), "  *blessed*" if t.blessed > 0.0 else "",
+			sim.religion.tribe_label(t), int(t.devotion), t.worshippers, t.heretics, warn,
+			"  STARVING" if t.starving else ""]
+
+var _swatch_tex: Texture2D
+func _swatch() -> Texture2D:
+	if _swatch_tex == null:
+		var img := Image.create(14, 14, false, Image.FORMAT_RGBA8)
+		img.fill(Color.WHITE)
+		_swatch_tex = ImageTexture.create_from_image(img)
+	return _swatch_tex
+
+func _on_tribe_row(i: int) -> void:
+	var tr := sim.live_tribes()
+	if i >= tr.size(): return
+	var t = tr[i]
+	main.rig.focus = t.center
+	main.rig.dist = 34.0
+	show_tribe(t)
+
+func _update_settlement() -> void:
+	var t = settle_tribe
+	if t == null or not t.alive:
+		settle_panel.visible = false
+		return
+	var counts := {}
+	for b in t.buildings:
+		var k: String = b.type + ("" if b.built else " (building)")
+		counts[k] = counts.get(k, 0) + 1
+	var blist := ""
+	for k in counts:
+		blist += "%s x%d, " % [k, counts[k]]
+	var priests := 0
+	var children := 0
+	var hunters := 0
+	var worshipping := 0
+	for v in t.members:
+		if v.priest: priests += 1
+		if v.is_child(): children += 1
+		if v.state == Villager.S.HUNT: hunters += 1
+		if v.state == Villager.S.WORSHIP: worshipping += 1
+	var status: Array = []
+	if t.starving: status.append("famine")
+	if t.blessed > 0.0: status.append("blessed")
+	if t.ceremony: status.append("ceremony in progress (%d worshipping)" % worshipping)
+	if t.inspired > 0.0: status.append("inspired by worship")
+	if t.tension >= 0.25: status.append("religious tension")
+	if t.heretical: status.append("heretic settlement")
+	settle_title.text = "%s - %s" % [t.name, t.stage]
+	settle_label.text = "Population %d (%d children)   Housing %d\nWood %d   Stone %d   Food %d\nBuildings: %s\n\nReligion: %s, devotion %d%%\nWorshippers %d   Heretics %d   Priests %d\nHoly site: %s\nHunters out: %d\nStatus: %s" % [
+		t.members.size(), children, sim.housing(t), t.wood, t.stone, t.food, blist.trim_suffix(", "),
+		sim.religion.tribe_label(t), int(t.devotion), t.worshippers, t.heretics, priests,
+		("Temple" if t.has_temple() else ("Shrine" if t.has_shrine() else ("under construction" if t.shrine != null else "none yet (needs 4 believers, wood and stone)"))),
+		hunters, ", ".join(status) if not status.is_empty() else "content"]

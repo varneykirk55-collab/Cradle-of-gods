@@ -2,16 +2,23 @@ class_name Terrain
 extends Node3D
 ## Procedural heightmap terrain: chunked flat-shaded low-poly mesh with biome
 ## vertex colours, plus a HeightMapShape3D collider kept in sync with edits.
+## The generated island sits in the middle of a wider ocean so the player can
+## raise new islands, peninsulas and continents (paint_land / place_tile).
 
 signal terrain_changed(center: Vector3, radius: float)
 
-const SIZE := 160          # cells per side
+const SIZE := 224          # cells per side
 const CHUNK := 32          # cells per chunk side
 const SEA := 0.0
-const HALF := 80.0
+const HALF := 112.0
 const W := SIZE + 1        # vertices per side
 const MIN_H := -14.0
 const MAX_H := 34.0
+const ISLAND_R := 80.0     # radius of the procedurally generated starting island
+const LAND_H := 1.7        # resting height of freshly created land
+const SHELF_H := -2.6      # continental shelf height around created land
+const TILE := 6            # cells per placement tile
+const COLLISION_INTERVAL := 0.12
 
 enum Biome { DEEP, SHALLOW, BEACH, DRY, GRASS, FOREST, ALPINE, ROCK, SNOW }
 
@@ -21,6 +28,9 @@ var fertility := PackedFloat32Array()   # -1 scorched .. +1 lush
 var chunk_nodes := {}
 var dirty := {}
 var collision_dirty := false
+var _collision_t := 0.0
+var version := 0           # bumped on every height edit (path caches compare against it)
+var detail := FastNoiseLite.new()
 var mat := StandardMaterial3D.new()
 var body := StaticBody3D.new()
 var shape := HeightMapShape3D.new()
@@ -54,26 +64,30 @@ func generate(p_seed: int) -> void:
 	mn.seed = p_seed + 31
 	mn.frequency = 0.02
 	mn.fractal_octaves = 3
+	detail.seed = p_seed + 57
+	detail.frequency = 0.09
+	detail.fractal_octaves = 2
 	heights.resize(W * W)
 	moisture.resize(W * W)
 	fertility.resize(W * W)
+	var off := HALF - ISLAND_R   # keep the same island shape per seed as the original 160-cell world
 	for z in W:
 		for x in W:
-			var nx := float(x) / SIZE * 2.0 - 1.0
-			var nz := float(z) / SIZE * 2.0 - 1.0
+			var nx := (float(x) - HALF) / ISLAND_R
+			var nz := (float(z) - HALF) / ISLAND_R
 			var d := sqrt(nx * nx + nz * nz)
-			var e := n.get_noise_2d(x, z) * 0.5 + 0.5
+			var e := n.get_noise_2d(x - off, z - off) * 0.5 + 0.5
 			var mask := 1.0 - pow(clampf(d * 1.08, 0.0, 1.5), 2.4)
 			var v := e * 0.85 + mask * 0.75 - 0.78
 			var h := v * 26.0
 			if h > 2.5:
-				var r := ridge.get_noise_2d(x, z) * 0.5 + 0.5
+				var r := ridge.get_noise_2d(x - off, z - off) * 0.5 + 0.5
 				h += pow(r, 2.2) * (h - 2.5) * 2.2
 			if h < SEA:
 				h = h * 1.4
 			var i := z * W + x
 			heights[i] = clampf(h, MIN_H, MAX_H)
-			moisture[i] = clampf(mn.get_noise_2d(x, z) * 0.75 + 0.5, 0.0, 1.0)
+			moisture[i] = clampf(mn.get_noise_2d(x - off, z - off) * 0.75 + 0.5, 0.0, 1.0)
 			fertility[i] = 0.0
 	for cz in SIZE / CHUNK:
 		for cx in SIZE / CHUNK:
@@ -228,6 +242,7 @@ func _update_collision() -> void:
 	shape.map_depth = W
 	shape.map_data = heights
 	collision_dirty = false
+	_collision_t = COLLISION_INTERVAL
 
 func _mark(x: int, z: int) -> void:
 	var cxs := [mini(x / CHUNK, SIZE / CHUNK - 1)]
@@ -238,16 +253,19 @@ func _mark(x: int, z: int) -> void:
 		for cz in czs:
 			dirty[Vector2i(cx, cz)] = true
 
-func rebuild_dirty() -> void:
+## Rebuilds the dirty chunk meshes; the collider is refreshed at most every
+## COLLISION_INTERVAL seconds while the player keeps painting (force = now).
+func rebuild_dirty(force := true) -> void:
 	for key in dirty.keys():
 		_build_chunk(key)
 	dirty.clear()
-	if collision_dirty:
+	if collision_dirty and (force or _collision_t <= 0.0):
 		_update_collision()
 
-func _process(_dt: float) -> void:
+func _process(dt: float) -> void:
+	_collision_t -= dt
 	if not dirty.is_empty() or collision_dirty:
-		rebuild_dirty()
+		rebuild_dirty(false)
 
 # ---------------------------------------------------------------- edits
 func modify(center: Vector3, radius: float, amount: float) -> void:
@@ -263,8 +281,126 @@ func modify(center: Vector3, radius: float, amount: float) -> void:
 			var i := z * W + x
 			heights[i] = clampf(heights[i] + amount * f, MIN_H, MAX_H)
 			_mark(x, z)
+	_edited(center, radius)
+
+func _edited(center: Vector3, radius: float) -> void:
 	collision_dirty = true
+	version += 1
 	terrain_changed.emit(center, radius)
+
+## Natural coastline wobble in world units (continuous, so neighbouring strokes match).
+func _coast_noise(wx: float, wz: float) -> float:
+	return detail.get_noise_2d(wx, wz)
+
+## Pull every cell in the brush toward `target`, never past it (rate is per second).
+func _approach(i: int, target: float, k: float) -> void:
+	heights[i] = clampf(lerpf(heights[i], target, clampf(k, 0.0, 1.0)), MIN_H, MAX_H)
+
+## Mode A: paint land up out of the sea. Cells inside the (noise-wobbled) brush
+## rise toward LAND_H (+ gentle hills); a wider ring is lifted to a shallow
+## shelf so the new coast gets a beach instead of a cliff into deep water.
+func paint_land(center: Vector3, radius: float, dt: float) -> void:
+	var gx := center.x + HALF
+	var gz := center.z + HALF
+	var outer := radius * 1.7
+	var r := int(ceil(outer))
+	var k := 1.0 - exp(-dt * 6.0)
+	for z in range(maxi(1, int(gz) - r), mini(W - 1, int(gz) + r + 2)):
+		for x in range(maxi(1, int(gx) - r), mini(W - 1, int(gx) + r + 2)):
+			var wx := x - HALF
+			var wz := z - HALF
+			var d := Vector2(x - gx, z - gz).length() + _coast_noise(wx * 1.3, wz * 1.3) * radius * 0.35
+			if d > outer: continue
+			var i := z * W + x
+			if d <= radius:
+				var f := 1.0 - d / radius
+				var target := LAND_H + (_coast_noise(wx * 0.6 + 40.0, wz * 0.6) * 0.5 + 0.5) * 1.6 * f
+				if heights[i] < target:
+					_approach(i, target, k * (0.35 + 0.65 * smoothstep(0.0, 0.35, f)))
+			else:
+				var f2 := 1.0 - (d - radius) / (outer - radius)
+				var shelf := lerpf(SHELF_H - 2.0, SEA - 0.4, f2 * f2)
+				if heights[i] < shelf:
+					_approach(i, shelf, k * 0.8)
+			_mark(x, z)
+	_edited(center, outer)
+
+## Mode B: place one square tile of land snapped to the TILE grid. Tiles share
+## the same height function, so neighbours join without seams; each tile also
+## lifts a shelf skirt around itself.
+func place_tile(center: Vector3) -> Vector3:
+	var cx := int(floor((center.x + HALF) / TILE)) * TILE
+	var cz := int(floor((center.z + HALF) / TILE)) * TILE
+	var skirt := 3
+	for z in range(maxi(1, cz - skirt), mini(W - 1, cz + TILE + skirt + 1)):
+		for x in range(maxi(1, cx - skirt), mini(W - 1, cx + TILE + skirt + 1)):
+			var wx := x - HALF
+			var wz := z - HALF
+			var i := z * W + x
+			var dx := maxi(maxi(cx - x, x - (cx + TILE)), 0)
+			var dz := maxi(maxi(cz - z, z - (cz + TILE)), 0)
+			var out := sqrt(float(dx * dx + dz * dz))
+			if out <= 0.0:
+				var target := LAND_H + (_coast_noise(wx * 0.6 + 40.0, wz * 0.6) * 0.5 + 0.5) * 0.9
+				heights[i] = maxf(heights[i], target)
+			else:
+				var f := 1.0 - out / float(skirt + 1)
+				var shelf := lerpf(SHELF_H - 1.5, SEA - 0.25, f)
+				heights[i] = maxf(heights[i], shelf)
+			_mark(x, z)
+	var c := Vector3(cx + TILE * 0.5 - HALF, 0, cz + TILE * 0.5 - HALF)
+	c.y = height_at(c.x, c.z)
+	_edited(c, TILE + skirt)
+	return c
+
+## Return land to the ocean: cells sink toward a shallow sea bed.
+func remove_land(center: Vector3, radius: float, dt: float) -> void:
+	var gx := center.x + HALF
+	var gz := center.z + HALF
+	var r := int(ceil(radius))
+	var k := 1.0 - exp(-dt * 5.0)
+	for z in range(maxi(0, int(gz) - r), mini(W, int(gz) + r + 2)):
+		for x in range(maxi(0, int(gx) - r), mini(W, int(gx) + r + 2)):
+			var d := Vector2(x - gx, z - gz).length()
+			if d > radius: continue
+			var f := 1.0 - d / radius
+			f = f * f * (3.0 - 2.0 * f)
+			var i := z * W + x
+			var target := SHELF_H - 1.5 * f
+			if heights[i] > target:
+				_approach(i, target, k * (0.3 + 0.7 * f))
+			_mark(x, z)
+	_edited(center, radius)
+
+## Level the ground under a building toward its average height.
+func flatten(center: Vector3, radius: float, strength := 0.7) -> void:
+	var gx := center.x + HALF
+	var gz := center.z + HALF
+	var r := int(ceil(radius))
+	var sum := 0.0
+	var cnt := 0
+	for z in range(maxi(0, int(gz) - r), mini(W, int(gz) + r + 2)):
+		for x in range(maxi(0, int(gx) - r), mini(W, int(gx) + r + 2)):
+			if Vector2(x - gx, z - gz).length() <= radius:
+				sum += heights[z * W + x]
+				cnt += 1
+	if cnt == 0: return
+	var avg := maxf(sum / cnt, SEA + 0.9)
+	for z in range(maxi(0, int(gz) - r), mini(W, int(gz) + r + 2)):
+		for x in range(maxi(0, int(gx) - r), mini(W, int(gx) + r + 2)):
+			var d := Vector2(x - gx, z - gz).length()
+			if d > radius: continue
+			var f := strength * clampf(1.2 - d / radius, 0.0, 1.0)
+			var i := z * W + x
+			heights[i] = lerpf(heights[i], avg, f)
+			_mark(x, z)
+	_edited(center, radius)
+
+func land_area() -> int:
+	var n := 0
+	for h in heights:
+		if h > SEA + 0.35: n += 1
+	return n
 
 func add_fertility(center: Vector3, radius: float, amount: float) -> void:
 	var gx := center.x + HALF
