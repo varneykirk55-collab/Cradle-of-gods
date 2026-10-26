@@ -23,7 +23,7 @@ func _ready() -> void:
 	for a in args:
 		if a.begins_with("--seed="):
 			world_seed = int(a.substr(7))
-	if "--autotest" in args or "--shots" in args or "--demo" in args:
+	if "--autotest" in args or "--shots" in args or "--demo" in args or "--views" in args:
 		if not _has_seed_arg(): world_seed = 4242
 	print("Cradle of Gods - world seed %d" % world_seed)
 	_setup_environment()
@@ -55,6 +55,10 @@ func _ready() -> void:
 		var at := AutoTest.new()
 		add_child(at)
 		at.run(self)
+	elif "--views" in args:
+		var tv: Node = load("res://tests/terrain_views.gd").new()
+		add_child(tv)
+		tv.run(self)
 	elif "--shots" in args or "--demo" in args:
 		var sh := Shots.new()
 		add_child(sh)
@@ -70,7 +74,7 @@ func _setup_environment() -> void:
 	sky_mat.sky_top_color = Color(0.28, 0.5, 0.82)
 	sky_mat.sky_horizon_color = Color(0.72, 0.82, 0.92)
 	sky_mat.ground_horizon_color = Color(0.72, 0.82, 0.92)
-	sky_mat.ground_bottom_color = Color(0.2, 0.3, 0.4)
+	sky_mat.ground_bottom_color = Color(0.62, 0.74, 0.84)   # below the horizon reads as distant sea haze
 	sky_mat.sun_angle_max = 30.0
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
@@ -104,46 +108,31 @@ func _setup_environment() -> void:
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	add_child(sun)
 
+## Sea surface (shaders/water.gdshader) reads the live terrain heightmap for
+## depth, so every coast gets shallows, shelf, deep water and foam.
 func _setup_water() -> void:
-	var sh := Shader.new()
-	sh.code = """
-shader_type spatial;
-render_mode blend_mix, depth_draw_opaque, cull_disabled;
-uniform vec4 shallow : source_color = vec4(0.22, 0.72, 0.78, 1.0);
-uniform vec4 deep : source_color = vec4(0.05, 0.28, 0.48, 1.0);
-varying vec3 wpos;
-void vertex() {
-	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	VERTEX.y += sin(wpos.x * 0.35 + TIME * 1.2) * 0.05 + cos(wpos.z * 0.3 + TIME * 0.9) * 0.05;
-}
-void fragment() {
-	float w = sin(wpos.x * 0.7 + TIME * 1.5) * cos(wpos.z * 0.6 + TIME * 1.1);
-	float edge = clamp(length(wpos.xz) / 210.0, 0.0, 1.0);
-	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
-	ALBEDO = mix(shallow.rgb, deep.rgb, 0.35 + edge * 0.5 + w * 0.06);
-	ALPHA = clamp(0.62 + fres * 0.3 + edge * 0.3, 0.0, 0.97);
-	ROUGHNESS = 0.12;
-	SPECULAR = 0.7;
-}
-"""
 	var m := ShaderMaterial.new()
-	m.shader = sh
+	m.shader = load("res://shaders/water.gdshader")
+	m.set_shader_parameter("height_tex", terrain.height_tex)
+	m.set_shader_parameter("wave_normal", load("res://assets/textures/water_normal.png"))
+	m.set_shader_parameter("detail_tex", load("res://assets/textures/terrain_detail.png"))
+	m.set_shader_parameter("half_size", Terrain.HALF)
+	m.set_shader_parameter("sea", Terrain.SEA)
 	var pm := PlaneMesh.new()
-	pm.size = Vector2(700, 700)
-	pm.subdivide_width = 80
-	pm.subdivide_depth = 80
+	pm.size = Vector2(1700, 1700)
+	pm.subdivide_width = 120
+	pm.subdivide_depth = 120
 	pm.material = m
 	var water := MeshInstance3D.new()
 	water.name = "Water"
 	water.mesh = pm
 	water.position = Vector3(0, Terrain.SEA - 0.12, 0)
-	pm.size = Vector2(900, 900)
 	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(water)
 	var floor_mat := StandardMaterial3D.new()
 	floor_mat.albedo_color = Color(0.07, 0.25, 0.35)
 	var fm := PlaneMesh.new()
-	fm.size = Vector2(700, 700)
+	fm.size = Vector2(1700, 1700)
 	fm.material = floor_mat
 	var sea_floor := MeshInstance3D.new()
 	sea_floor.mesh = fm

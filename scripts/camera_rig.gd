@@ -23,7 +23,7 @@ const MAX_D := 230.0
 func _ready() -> void:
 	cam.fov = 50.0
 	cam.near = 0.2
-	cam.far = 800.0
+	cam.far = 1400.0
 	add_child(cam)
 	cam.current = true
 	snap()

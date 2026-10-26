@@ -6,6 +6,17 @@ extends RefCounted
 static var _meshes := {}
 static var _tribe_mats := {}
 static var _soft_tex: Texture2D = null
+static var _rock_mat: ShaderMaterial = null
+
+## Blender rock set (tools/make_rocks.py): vertex-coloured, drawn with shaders/rock.gdshader.
+const ROCK_MODELS := ["boulder_round", "boulder_split", "boulder_slab", "shore_rock", "shore_pebbles", "stone_outcrop"]
+
+static func rock_material() -> ShaderMaterial:
+	if _rock_mat == null:
+		_rock_mat = ShaderMaterial.new()
+		_rock_mat.shader = load("res://shaders/rock.gdshader")
+		_rock_mat.set_shader_parameter("detail_tex", load("res://assets/textures/terrain_detail.png"))
+	return _rock_mat
 
 static func mesh(model: String) -> Mesh:
 	if _meshes.has(model):
@@ -15,6 +26,8 @@ static func mesh(model: String) -> Mesh:
 	var mi := _find_mesh(inst)
 	var m: Mesh = mi.mesh if mi else BoxMesh.new()
 	inst.free()
+	if model in ROCK_MODELS:
+		m.surface_set_material(0, rock_material())
 	_meshes[model] = m
 	return m
 

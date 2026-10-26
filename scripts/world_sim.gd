@@ -124,7 +124,7 @@ func setup(p_terrain: Terrain, p_seed: int) -> void:
 		carry_mats[t] = m
 	_make_pool("tree_pine", 1800)
 	_make_pool("tree_oak", 1800)
-	_make_pool("rock", 500)
+	_make_pool("stone_outcrop", 500)
 	_make_pool("bush", 700)
 	_make_pool("stump", 400)
 	marker_mesh.radius = 0.17
@@ -199,7 +199,7 @@ func add_resource(type: int, pos: Vector3, grow_in := false, kind := "") -> Res:
 		match type:
 			RES_TREE:
 				kind = "tree_pine" if (pos.y > 6.0 or terrain.moisture_at(pos.x, pos.z) > 0.72 or rng.randf() < 0.25) else "tree_oak"
-			RES_ROCK: kind = "rock"
+			RES_ROCK: kind = "stone_outcrop"
 			_: kind = "bush"
 	var slot := _alloc(kind)
 	if slot < 0:

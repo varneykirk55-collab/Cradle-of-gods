@@ -2,3 +2,5 @@
 *.tmp
 export/
 recordings/*.avi
+screenshots/views_before/
+screenshots/views_after/

@@ -31,16 +31,21 @@ var collision_dirty := false
 var _collision_t := 0.0
 var version := 0           # bumped on every height edit (path caches compare against it)
 var detail := FastNoiseLite.new()
-var mat := StandardMaterial3D.new()
+var mat := ShaderMaterial.new()
+var height_tex: ImageTexture      # heights as a float texture (water depth / shore foam)
+var decor: TerrainDecor           # Blender boulders and shore rocks scattered per chunk
 var body := StaticBody3D.new()
 var shape := HeightMapShape3D.new()
 var seed_value := 0
 
 func _ready() -> void:
-	mat.vertex_color_use_as_albedo = true
-	mat.vertex_color_is_srgb = true
-	mat.roughness = 0.95
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.shader = load("res://shaders/terrain.gdshader")
+	mat.set_shader_parameter("detail_tex", load("res://assets/textures/terrain_detail.png"))
+	mat.set_shader_parameter("macro_tex", load("res://assets/textures/terrain_macro.png"))
+	decor = TerrainDecor.new()
+	decor.name = "Decor"
+	decor.terrain = self
+	add_child(decor)
 	add_child(body)
 	var cs := CollisionShape3D.new()
 	cs.shape = shape
@@ -147,65 +152,56 @@ func _biome(h: float, slope: float, m: float) -> int:
 	if m > 0.6: return Biome.FOREST
 	return Biome.GRASS
 
-func biome_color(h: float, slope: float, m: float, fert: float, rnd: float) -> Color:
-	var c: Color
-	var b := _biome(h, slope, m)
-	match b:
-		Biome.DEEP, Biome.SHALLOW:
-			var depth := clampf((SEA - h) / 9.0, 0.0, 1.0)
-			c = Color(0.86, 0.80, 0.56).lerp(Color(0.08, 0.30, 0.40), depth)
-		Biome.BEACH:
-			c = Color(0.93, 0.85, 0.60)
-		Biome.SNOW:
-			c = Color(0.95, 0.96, 0.99)
-		Biome.ROCK:
-			c = Color(0.47, 0.44, 0.41).lerp(Color(0.38, 0.36, 0.38), clampf((h - 6.0) / 14.0, 0.0, 1.0))
-			if h > 15.0:
-				c = c.lerp(Color(0.92, 0.93, 0.96), clampf((h - 15.0) / 6.0, 0.0, 0.8))
-		Biome.ALPINE:
-			c = Color(0.38, 0.50, 0.28).lerp(Color(0.47, 0.48, 0.36), clampf((h - 8.0) / 4.0, 0.0, 1.0))
-		Biome.DRY:
-			c = Color(0.72, 0.68, 0.40).lerp(Color(0.50, 0.60, 0.30), m / 0.33)
-		Biome.GRASS:
-			c = Color(0.45, 0.58, 0.29).lerp(Color(0.35, 0.52, 0.25), (m - 0.33) / 0.27)
-		_:
-			c = Color(0.27, 0.47, 0.22).lerp(Color(0.21, 0.40, 0.19), clampf((m - 0.6) / 0.4, 0.0, 1.0))
-	if b != Biome.DEEP and b != Biome.SHALLOW and b != Biome.SNOW:
-		if fert > 0.0:
-			c = c.lerp(Color(0.22, 0.58, 0.20), fert * 0.55)
-		elif fert < 0.0:
-			c = c.lerp(Color(0.16, 0.12, 0.10), -fert * 0.9)
-	return c * (0.93 + rnd * 0.12)
-
 # ---------------------------------------------------------------- mesh
+## Each chunk is a smooth indexed grid: one vertex per heightmap sample with a
+## normal from central differences over the global heightmap (so chunk borders
+## shade seamlessly). The look comes from shaders/terrain.gdshader, which
+## blends grass, dry grass, soil, rock, sand and snow per pixel from height,
+## slope, moisture and fertility (UV = moisture, fertility), so freshly
+## created or sculpted land gets the same materials automatically.
 func _build_chunk(key: Vector2i) -> void:
+	var n := CHUNK + 1
 	var verts := PackedVector3Array()
 	var norms := PackedVector3Array()
-	var cols := PackedColorArray()
-	var n_tris := CHUNK * CHUNK * 2
-	verts.resize(n_tris * 3)
-	norms.resize(n_tris * 3)
-	cols.resize(n_tris * 3)
+	var uvs := PackedVector2Array()
+	var idx := PackedInt32Array()
+	verts.resize(n * n)
+	norms.resize(n * n)
+	uvs.resize(n * n)
+	idx.resize(CHUNK * CHUNK * 6)
+	var x0 := key.x * CHUNK
+	var z0 := key.y * CHUNK
 	var k := 0
-	for z in range(key.y * CHUNK, (key.y + 1) * CHUNK):
-		for x in range(key.x * CHUNK, (key.x + 1) * CHUNK):
-			var pa := Vector3(x - HALF, heights[z * W + x], z - HALF)
-			var pb := Vector3(x + 1 - HALF, heights[z * W + x + 1], z - HALF)
-			var pc := Vector3(x - HALF, heights[(z + 1) * W + x], z + 1 - HALF)
-			var pd := Vector3(x + 1 - HALF, heights[(z + 1) * W + x + 1], z + 1 - HALF)
-			var mo := (moisture[z * W + x] + moisture[(z + 1) * W + x + 1]) * 0.5
-			var fe := (fertility[z * W + x] + fertility[(z + 1) * W + x + 1]) * 0.5
-			if (x + z) % 2 == 0:
-				k = _tri(verts, norms, cols, k, pa, pb, pd, mo, fe, x * 7 + z * 13)
-				k = _tri(verts, norms, cols, k, pa, pd, pc, mo, fe, x * 11 + z * 5 + 3)
+	for j in n:
+		var z := z0 + j
+		for i in n:
+			var x := x0 + i
+			var vi := z * W + x
+			verts[k] = Vector3(x - HALF, heights[vi], z - HALF)
+			norms[k] = _normal(x, z)
+			uvs[k] = Vector2(moisture[vi], fertility[vi])
+			k += 1
+	k = 0
+	for j in CHUNK:
+		for i in CHUNK:
+			var a := j * n + i
+			var b := a + 1
+			var c := a + n
+			var d := c + 1
+			# alternate the split diagonal (as the old flat mesh did); clockwise = front
+			if (x0 + i + z0 + j) % 2 == 0:
+				idx[k] = a; idx[k + 1] = b; idx[k + 2] = d
+				idx[k + 3] = a; idx[k + 4] = d; idx[k + 5] = c
 			else:
-				k = _tri(verts, norms, cols, k, pa, pb, pc, mo, fe, x * 7 + z * 13)
-				k = _tri(verts, norms, cols, k, pb, pd, pc, mo, fe, x * 11 + z * 5 + 3)
+				idx[k] = a; idx[k + 1] = b; idx[k + 2] = c
+				idx[k + 3] = b; idx[k + 4] = d; idx[k + 5] = c
+			k += 6
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = verts
 	arrays[Mesh.ARRAY_NORMAL] = norms
-	arrays[Mesh.ARRAY_COLOR] = cols
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = idx
 	var am := ArrayMesh.new()
 	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	am.surface_set_material(0, mat)
@@ -216,42 +212,38 @@ func _build_chunk(key: Vector2i) -> void:
 		add_child(mi)
 		chunk_nodes[key] = mi
 	mi.mesh = am
+	if decor: decor.rebuild_chunk(key)
 
-func _tri(verts: PackedVector3Array, norms: PackedVector3Array, cols: PackedColorArray, k: int,
-		p0: Vector3, p1: Vector3, p2: Vector3, mo: float, fe: float, hseed: int) -> int:
-	var nrm := (p1 - p0).cross(p2 - p0)
-	if nrm.y > 0.0:
-		# Godot uses clockwise front faces: swap to keep the top face facing up.
-		var t := p1
-		p1 = p2
-		p2 = t
-	else:
-		nrm = -nrm
-	nrm = nrm.normalized()
-	var h := (p0.y + p1.y + p2.y) / 3.0
-	var slope := sqrt(maxf(0.0, 1.0 - nrm.y * nrm.y)) / maxf(nrm.y, 0.05)
-	var rnd := float((hseed * 2654435761) & 1023) / 1023.0
-	var c := biome_color(h, slope, mo, fe, rnd)
-	verts[k] = p0; verts[k + 1] = p1; verts[k + 2] = p2
-	norms[k] = nrm; norms[k + 1] = nrm; norms[k + 2] = nrm
-	cols[k] = c; cols[k + 1] = c; cols[k + 2] = c
-	return k + 3
+func _normal(x: int, z: int) -> Vector3:
+	var hl := heights[z * W + maxi(x - 1, 0)]
+	var hr := heights[z * W + mini(x + 1, SIZE)]
+	var hd := heights[maxi(z - 1, 0) * W + x]
+	var hu := heights[mini(z + 1, SIZE) * W + x]
+	return Vector3(hl - hr, 2.0, hd - hu).normalized()
 
 func _update_collision() -> void:
 	shape.map_width = W
 	shape.map_depth = W
 	shape.map_data = heights
+	_update_height_tex()
 	collision_dirty = false
 	_collision_t = COLLISION_INTERVAL
 
+func _update_height_tex() -> void:
+	var img := Image.create_from_data(W, W, false, Image.FORMAT_RF, heights.to_byte_array())
+	img.convert(Image.FORMAT_RH)
+	if height_tex == null:
+		height_tex = ImageTexture.create_from_image(img)
+	else:
+		height_tex.update(img)
+
+## Marks every chunk whose vertices (or their smoothed normals, which read the
+## neighbouring samples) depend on height sample (x, z).
 func _mark(x: int, z: int) -> void:
-	var cxs := [mini(x / CHUNK, SIZE / CHUNK - 1)]
-	var czs := [mini(z / CHUNK, SIZE / CHUNK - 1)]
-	if x % CHUNK == 0 and x > 0: cxs.append(x / CHUNK - 1)
-	if z % CHUNK == 0 and z > 0: czs.append(z / CHUNK - 1)
-	for cx in cxs:
-		for cz in czs:
-			dirty[Vector2i(cx, cz)] = true
+	var last := SIZE / CHUNK - 1
+	for cz in range(maxi(z - 2, 0) / CHUNK, mini(z + 1, SIZE - 1) / CHUNK + 1):
+		for cx in range(maxi(x - 2, 0) / CHUNK, mini(x + 1, SIZE - 1) / CHUNK + 1):
+			dirty[Vector2i(mini(cx, last), mini(cz, last))] = true
 
 ## Rebuilds the dirty chunk meshes; the collider is refreshed at most every
 ## COLLISION_INTERVAL seconds while the player keeps painting (force = now).
