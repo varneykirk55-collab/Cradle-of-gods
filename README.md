@@ -45,6 +45,8 @@ The GL Compatibility renderer runs on low-end GPUs and in software (Mesa llvmpip
 | | Fold the settlement list | `T` |
 | | Help overlay (same bindings, in game) | `H` or `F1` |
 | | Screenshot | `F12` (saved to `screenshots/`) |
+| **Sound** | Volume, music, ambience and effects sliders | **Sound** button (top-left panel) |
+| | Mute everything | `M` |
 
 ### Powers
 | Key | Power | Prayer | Effect |
@@ -66,6 +68,31 @@ in the middle of open ocean so there is room for new islands, peninsulas, land b
 continents. Edits only rebuild the touched 32×32 mesh chunks; the `HeightMapShape3D` collider is
 refreshed at most every 0.12 s while painting (immediately when the stroke ends). New land gets
 biome colours, can be walked on, grows forests (natural spread and Sow Forest) and can be settled.
+
+**Terrain look** (`shaders/terrain.gdshader`, `shaders/water.gdshader`, `terrain_decor.gd`).
+The terrain chunks are smooth grids (normals from the global heightmap, so chunk borders shade
+seamlessly). The ground shader blends lush and dry grass, bare soil patches, sparse wildflowers,
+alpine meadow, layered triplanar rock on steep slopes, scree, small snow caps, dry and wet sand and a
+darkening sea bed per pixel, from height, slope, moisture and fertility, using original tileable
+textures (`tools/make_terrain_textures.py`). The sea reads a live height texture for depth:
+turquoise shallows, a green-blue shelf, deep blue water, a foam line and wash at the shore, soft
+ripples and horizon haze. Blender-made boulders sit on steep and high ground, and water-worn rocks
+and pebbles line the shores (`tools/make_rocks.py`). Because all of it comes from the heightmap,
+land you raise, create or remove gets the same materials, coast and rocks. Gameplay biomes, world
+generation, colliders and navigation are unchanged. Before/after comparisons are in
+`screenshots/terrain_pass_a/`.
+
+**Audio** (`audio.gd`). Music, Ambience and SFX buses under Master. Forest, meadow, coast and
+high-altitude wind beds crossfade (about 1.5 s) from what the camera looks at: water around the
+focus, tree density and zoom. Settlements murmur and you hear villagers chopping, hammering and
+quarrying near the camera. Birds sing from nearby trees every few seconds, wolves howl now and
+then, and deer and rabbits rustle when you zoom in. Each sound uses random variants and pitch, is
+rate-limited and has a per-category voice cap. Every God Hand action and divine power has its own
+cue: rumbling or draining loops while you sculpt land, a rain loop under the cloud, fire crackle
+near fires, a thunder crack and roll, and a meteor roar and explosion. A quiet music piece plays
+every few minutes, with silence in between. Pausing stops simulation sounds and dims the ambience.
+Settings are saved to `user://audio.cfg`. Every sound is original and procedurally synthesised by
+`tools/make_audio.py`; see [AUDIO_CREDITS.md](AUDIO_CREDITS.md).
 
 **Navigation** (`nav.gd`). Godot's native `AStarGrid2D` over the terrain vertices: water and cliffs
 are solid; slopes, shorelines and building footprints cost more. Terrain edits refresh only the
@@ -130,6 +157,7 @@ options, a hover tooltip, toasts, event log, help overlay and title splash.
 
 ## Code map
 `main.gd` bootstrap, environment, hotkeys · `terrain.gd` heightmap, mesh chunks, land creation ·
+`terrain_decor.gd` rock scatter · `audio.gd` sound · `shaders/` terrain, water and rock shaders ·
 `nav.gd` A* grid and islands · `world_sim.gd` resources, tribes, buildings, fire, hand props, spatial
 hash, profiling · `villager.gd` · `religion.gd` · `ecosystem.gd` + `animal.gd` · `god_hand.gd` ·
 `powers.gd` · `camera_rig.gd` · `hud.gd` · `fx.gd` · `assets.gd` · `autotest.gd` (headless
@@ -142,13 +170,20 @@ regression suite) · `shots.gd` (rendered tour, synthetic input test, scripted d
   (articulated parts), `deer/wolf/rabbit/bird.glb`, `shrine.glb`, `temple.glb`, `hut_b.glb`,
   `house_b.glb`. Run `python tools/make_assets_v2.py -- assets/models` (with `pip install bpy`) or
   `blender -b --python tools/make_assets_v2.py -- assets/models`.
+- `tools/make_rocks.py` (Blender 5.2 / `bpy`): `boulder_round/split/slab.glb`, `shore_rock.glb`,
+  `shore_pebbles.glb` and `stone_outcrop.glb` (the harvestable stone resource), with baked
+  cavity, moss and algae vertex colours. Run `python tools/make_rocks.py -- assets/models`.
+- `tools/make_terrain_textures.py` (numpy + Pillow): tileable terrain detail and macro textures
+  and the water normal map in `assets/textures/`.
+- `tools/make_audio.py` (numpy + scipy + ffmpeg): every file in `assets/audio/`
+  (see `AUDIO_CREDITS.md`).
 - `tools/make_icons.py` renders the hand / land / remove / plenty toolbar icons with Cycles.
 - The original seven power icons and the title splash were made with an AI image generator for the
   first milestone.
 
 ## Testing
 `tools/run_tests.sh` (set `GODOT=/path/to/godot`):
-1. **Headless regression suite**: `godot --headless --path . --fixed-fps 30 -- --autotest` — 81
+1. **Headless regression suite**: `godot --headless --path . --fixed-fps 30 -- --autotest` — 102
    checks over ~35 simulated minutes (passes on world seeds 4242–4249; add `--seed=N` to try others): world generation, growth, gathering, settlement progression,
    stuck villagers, raise/lower + collider, brush land from deep ocean (walkable, beach, collider),
    tiles (seams, connectivity, repeated placement), remove land (splits islands), a villager walking
@@ -157,7 +192,10 @@ regression suite) · `shots.gd` (rendered tour, synthetic input test, scripted d
    costs, miracles raising faith, shrine → priest → ceremony → prayer → temple, heresy from famine and
    smiting with recorded causes, heretic persuasion, conversion by miracles, punishing a heretic,
    animal breeding, wolf predation, villager hunting, bird flight, bounded populations, every divine
-   power, pause and 4x speed, and a 20-minute stability run. Exits non-zero on failure; the last log
+   power, pause and 4x speed, the terrain pass (rocks scattered, created land gets the shader,
+   shore rocks and water depth), audio (buses, every file loads, independent volumes, mute, a cue
+   for every hand action and power, coast / forest / high-wind mixing, occasional settlement and
+   wildlife sounds within voice limits, silence while paused), and a 20-minute stability run. Exits non-zero on failure; the last log
    is `tools/last_autotest.log`.
 2. **Rendered tour + synthetic input** (`xvfb-run ... -- --shots`): renders `screenshots/*.png`, then
    drives the game with OS-level input events: `W` pan, wheel zoom, right-drag orbit, **left-drag on
@@ -166,6 +204,8 @@ regression suite) · `shots.gd` (rendered tour, synthetic input test, scripted d
    `tools/last_shots.log`.
 3. `tools/record_demo.sh` records the scripted demo with Godot's movie maker (`--write-movie`).
 4. `godot --headless --path . -s res://tests/profile.gd` prints per-subsystem simulation cost.
+5. **Terrain views** (`xvfb-run ... -- --views [--bench] [--outdir=screenshots/views]`): renders 11 fixed
+   viewpoints (seed 4242) for before/after comparisons; `--bench` also prints frame times.
 
 ## Performance notes
 Measured headless on the CI container (4 vCPU, no GPU), see `tools/last_autotest.log`: roughly
@@ -176,8 +216,21 @@ pose application, native A* with a path budget, throttled collider and island up
 `visibility_range` on character parts. Rendering under the software renderer is ~2 FPS at 1600×900;
 real-GPU frame rates have not been measured here.
 
+Terrain pass A + audio, measured on the same container (software rendering, 1600×900, seed 4242,
+`--views --bench`): overview 1035 → 1209 ms/frame, village 924 → 1057, coast 1485 → 1618
+(the new terrain and water shaders cost about 10–17% under llvmpipe). Simulation including the
+audio director: 7.56 → 7.50 ms/step over the 20-minute run, so no measurable change. GPU frame rates
+are still unmeasured.
+
 ## Known limitations
-- No save/load, audio, boats, war or diplomacy (warfare was out of scope by design).
+- No save/load, boats, war or diplomacy (warfare was out of scope by design).
+- Trees, bushes and buildings are still the milestone-1 low-poly models (vegetation Pass B has
+  not started).
+- Decorative boulders have no collision and don't affect navigation. They only appear on steep
+  or high ground, but a villager crossing such a slope can clip through one.
+- All audio is procedurally synthesised. It was checked with spectrograms and level analysis, not
+  by ear, so naturalness still needs a listening pass. The village murmur and the wolf howls are
+  the most synthetic-sounding.
 - Villagers path on a 1 m grid; dense building clusters can produce small detours.
 - Tile mode makes square-edged islands by design; use the brush for organic coasts.
 - Only measured under software rendering; GPU performance is unverified.

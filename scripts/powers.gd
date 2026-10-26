@@ -8,7 +8,7 @@ signal power_changed(idx: int)
 signal flash(strength: float)
 signal cast_done(id: String, pos: Vector3)
 signal message(text: String)
-## Every frame a brush power (land / remove / raise / lower / forest) is applied.
+## Every frame a brush power (land / remove / raise / lower) is applied, and each time Sow Forest plants.
 signal brush_cast(id: String, pos: Vector3)
 signal meteor_impact(pos: Vector3)
 
@@ -214,7 +214,7 @@ func cast(idx_or_id, p: Vector3, dt: float) -> void:
 	var id: String = LIST[idx]["id"]
 	casts[id] = casts.get(id, 0) + 1
 	var step := maxf(dt, 1.0 / 30.0)
-	if is_continuous(id) and not (id == "land" and land_mode == "tile"):
+	if is_continuous(id) and id != "forest" and not (id == "land" and land_mode == "tile"):
 		brush_cast.emit(id, p)
 	match id:
 		"land":
@@ -241,6 +241,7 @@ func cast(idx_or_id, p: Vector3, dt: float) -> void:
 				cooldown = 0.12
 				if not _pay(idx): return
 				var n := sim.plant(p, brush, 3)
+				if n > 0: brush_cast.emit(id, p)
 				FX.sparkle(sim, p + Vector3(0, 0.5, 0), Color(0.6, 1.0, 0.4), 14, brush * 0.5)
 				if n > 0 and _witness_t <= 0.0:
 					_witness_t = 2.0
