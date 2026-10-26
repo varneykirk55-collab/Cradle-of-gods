@@ -732,6 +732,21 @@ func _test_audio() -> void:
 	for k in ["lightning", "meteor_impact", "rain_gather", "life", "plenty", "forest_grow", "tile_thunk"]:
 		dist[load("res://assets/audio/sfx/%s.wav" % k).get_length()] = k
 	_check("audio: power cues are distinct files", dist.size() == 7, "")
+	# a power that fails (no prayer) must not play its success cue
+	var sb: bool = sim.religion.sandbox
+	var pr: float = sim.religion.prayer
+	sim.religion.sandbox = false
+	sim.religion.prayer = 0.0
+	var fc0 := _cue_total(["lightning", "meteor_incoming", "plenty", "life", "rain_gather", "forest_grow"])
+	var tc = sim.live_tribes()[0].center
+	for id in ["lightning", "meteor", "plenty", "villager", "rain", "forest"]:
+		powers.cooldown = 0.0
+		au._last.clear()
+		powers.cast(id, tc, 0.1)
+	await _frames(2, false)
+	_check("audio: failed (unaffordable) powers stay silent", _cue_total(["lightning", "meteor_incoming", "plenty", "life", "rain_gather", "forest_grow"]) == fc0, "")
+	sim.religion.sandbox = sb
+	sim.religion.prayer = pr
 	# ambience follows the camera: coast vs forest vs high altitude
 	var rig: CameraRig = m.rig
 	var coast_p := Vector3.ZERO
