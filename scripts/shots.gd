@@ -457,6 +457,8 @@ func _mouse_button(b: MouseButton, pos: Vector2, pressed: bool) -> void:
 # ---------------------------------------------------------------- demo
 ## Scripted gameplay for a recording (`tools/record_demo.sh`).
 func _demo() -> void:
+	# never record forever: quit even if a step of the script errors out
+	get_tree().create_timer(150.0).timeout.connect(func(): get_tree().quit())
 	m.hud.splash.visible = false
 	sim.religion.sandbox = true
 	m.hud.set_sandbox(true)
@@ -501,7 +503,7 @@ func _demo() -> void:
 	hand.press()
 	var dest := t0.center + Vector3(6, 0, -5)
 	for i in 50:
-		_point_at(v.position.lerp(dest, 0.08))
+		if is_instance_valid(v): _point_at(v.position.lerp(dest, 0.08))
 		await _frames(1)
 	hand.release()
 	await _frames(25)
@@ -518,7 +520,7 @@ func _demo() -> void:
 		await _frames(1)
 	hand.release()
 	for i in 40:
-		rig.focus = rig.focus.lerp(v2.position, 0.08)
+		if is_instance_valid(v2): rig.focus = rig.focus.lerp(v2.position, 0.08)
 		await _frames(1)
 	# 4. paint new land out at sea
 	var sea := Vector3(-80, 0, -78)
