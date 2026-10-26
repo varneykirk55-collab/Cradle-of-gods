@@ -6,6 +6,10 @@ extends Node3D
 ## time-speed control (pause/1x/2x/4x) affects the whole simulation.
 
 signal event_logged(text: String, color: Color)
+## Something thrown by the God Hand hit the ground (kind: villager / animal / prop).
+signal impact(pos: Vector3, speed: float, kind: String)
+## "complete" when a building is finished in play, "destroyed" when one is lost.
+signal building_event(kind: String, pos: Vector3)
 
 const RES_TREE := 0
 const RES_ROCK := 1
@@ -466,6 +470,7 @@ func _finish_building(b: Building, announce: bool) -> void:
 	tw.tween_property(b.node, "scale", Vector3.ONE, 0.25).set_trans(Tween.TRANS_SINE)
 	if announce:
 		FX.dust(self, b.pos)
+		building_event.emit("complete", b.pos)
 		if b.type == "house":
 			log_event("%s raised a stone house." % b.tribe.name, b.tribe.color)
 		elif b.type == "shrine":
@@ -481,6 +486,7 @@ func destroy_building(b: Building, cause := "") -> void:
 	b.tribe.buildings.erase(b)
 	nav.set_footprint(b.pos, FOOTPRINT[b.type], false)
 	stats["destroyed"] += 1
+	building_event.emit("destroyed", b.pos)
 	if b.tribe.shrine == b:
 		b.tribe.shrine = null
 		b.tribe.ceremony = false
@@ -677,6 +683,7 @@ func threat_near(v: Villager) -> Variant:
 func on_villager_landed(v: Villager, vel: Vector3) -> void:
 	var sp := vel.length()
 	var p := v.position
+	impact.emit(p, sp, "villager")
 	if sp > 12.0:
 		for o in villagers.duplicate():
 			if o != v and not o.is_busy_with_god() and Vector2(o.position.x - p.x, o.position.z - p.z).length() < 1.0:
@@ -1037,6 +1044,7 @@ func _update_props(dt: float) -> void:
 		_land_prop(mi, Vector3(np.x, gh, np.z), pr["vel"].length())
 
 func _land_prop(mi: MeshInstance3D, p: Vector3, speed: float) -> void:
+	impact.emit(p, speed, "prop")
 	var type: int = mi.get_meta("type")
 	var amount: float = mi.get_meta("amount")
 	if speed > 10.0:

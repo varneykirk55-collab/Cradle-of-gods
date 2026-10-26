@@ -82,6 +82,10 @@ func run(p_main) -> void:
 	rig.set_view(tb + Vector3(6, 0, 0), 50.0, 0.4, 0.7, true)
 	await _frames(10)
 	await _shot("11_created_tiles")
+	if "--bench" in m.args:
+		await _bench("overview", Vector3.ZERO, 200.0, 0.6, 1.0)
+		if tribe: await _bench("village", tribe.center, 35.0, 0.7, 0.8)
+		await _bench("coast", coast, 40.0, atan2(coast.x, coast.z) + 0.6, 0.45)
 	print("VIEWS DONE")
 	get_tree().quit(0)
 
@@ -112,3 +116,12 @@ func _meadow() -> Vector3:
 				best_s = s
 				best = Vector3(x, h, z)
 	return best
+
+## Average real frame time over 60 frames at a fixed view (after 10 warm-up frames).
+func _bench(name: String, focus: Vector3, dist: float, yaw: float, pitch: float) -> void:
+	m.rig.set_view(focus, dist, yaw, pitch, true)
+	await _frames(10)
+	var t0 := Time.get_ticks_usec()
+	await _frames(60)
+	var ms := (Time.get_ticks_usec() - t0) / 60000.0
+	print("BENCH %s %.1f ms/frame (%.1f fps)" % [name, ms, 1000.0 / ms])

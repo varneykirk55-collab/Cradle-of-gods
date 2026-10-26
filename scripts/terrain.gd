@@ -33,6 +33,7 @@ var version := 0           # bumped on every height edit (path caches compare ag
 var detail := FastNoiseLite.new()
 var mat := ShaderMaterial.new()
 var height_tex: ImageTexture      # heights as a float texture (water depth / shore foam)
+var height_img: Image             # the image last uploaded to height_tex
 var decor: TerrainDecor           # Blender boulders and shore rocks scattered per chunk
 var body := StaticBody3D.new()
 var shape := HeightMapShape3D.new()
@@ -232,6 +233,7 @@ func _update_collision() -> void:
 func _update_height_tex() -> void:
 	var img := Image.create_from_data(W, W, false, Image.FORMAT_RF, heights.to_byte_array())
 	img.convert(Image.FORMAT_RH)
+	height_img = img
 	if height_tex == null:
 		height_tex = ImageTexture.create_from_image(img)
 	else:

@@ -15,6 +15,8 @@ extends Node3D
 
 signal hover_changed(text: String)
 signal settlement_clicked(tribe)
+## "grab", "place" or "throw", with what is held ("villager", "animal", "prop").
+signal hand_event(kind: String, pos: Vector3, what: String)
 
 enum H { IDLE, GRAB_DOWN, HOLD, PLACE_DOWN, RELEASE, PAN, CLICK }
 
@@ -259,6 +261,7 @@ func _attach() -> void:
 				return
 			held = {"kind": "prop", "obj": sim.make_prop(r)}
 	stats["grabs"] += 1
+	hand_event.emit("grab", hand_pos, held["kind"])
 	state = H.HOLD
 	_swing = Vector3.ZERO
 	_swing_v = Vector3.ZERO
@@ -268,6 +271,7 @@ func _held_node() -> Node3D:
 	return held["obj"] as Node3D
 
 func _throw(v: Vector3) -> void:
+	if held != null: hand_event.emit("throw", hand_pos, held["kind"])
 	v = v * 1.15 + Vector3(0, 2.5, 0)
 	if v.length() > THROW_MAX: v = v.normalized() * THROW_MAX
 	_let_go(v)
@@ -402,6 +406,7 @@ func _process(dt: float) -> void:
 				state = H.IDLE
 			elif _state_t > 1.2 or (_state_t > 0.1 and node.global_position.y <= _place_target.y + 0.2):
 				stats["places"] += 1
+				hand_event.emit("place", node.global_position, held["kind"])
 				_let_go(Vector3.ZERO)
 		H.RELEASE:
 			pose_name = "open"

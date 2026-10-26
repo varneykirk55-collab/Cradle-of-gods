@@ -13,6 +13,7 @@ var rig: CameraRig
 var powers: Powers
 var hud: Hud
 var hand: GodHand
+var audio: AudioDirector
 var speed_idx := 1
 var world_seed := 0
 var args := PackedStringArray()
@@ -47,6 +48,10 @@ func _ready() -> void:
 	hand.name = "GodHand"
 	add_child(hand)
 	hand.setup(sim, terrain, rig, powers)
+	audio = AudioDirector.new()
+	audio.name = "Audio"
+	add_child(audio)
+	audio.setup(self)
 	hud = Hud.new()
 	add_child(hud)
 	hud.setup(self, sim, powers, hand)
@@ -187,6 +192,9 @@ func _unhandled_input(e: InputEvent) -> void:
 		powers.set_brush(powers.brush - 1.0)
 	elif k == KEY_BRACKETRIGHT:
 		powers.set_brush(powers.brush + 1.0)
+	elif k == KEY_M:
+		audio.set_muted(not audio.muted)
+		hud.sync_audio()
 	elif k == KEY_H or k == KEY_F1:
 		hud.toggle_help()
 	elif k == KEY_TAB:

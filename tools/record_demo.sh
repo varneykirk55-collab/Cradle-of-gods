@@ -10,6 +10,6 @@ RUN=(xvfb-run -a -s "-screen 0 1280x720x24")
 command -v xvfb-run >/dev/null || RUN=()
 "${RUN[@]}" "$GODOT" --path . --rendering-driver opengl3 --resolution 1280x720 --fixed-fps 30 \
   --write-movie "$OUT.avi" -- --demo
-ffmpeg -y -loglevel error -i "$OUT.avi" -c:v libx264 -pix_fmt yuv420p -crf 23 "$OUT.mp4"
+ffmpeg -y -loglevel error -i "$OUT.avi" -c:v libx264 -pix_fmt yuv420p -crf 23 -c:a aac -b:a 160k "$OUT.mp4"
 rm -f "$OUT.avi" "$OUT.wav"
 echo "recorded $OUT.mp4"

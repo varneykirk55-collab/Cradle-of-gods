@@ -51,12 +51,15 @@ func run(p_main) -> void:
 	await _test_ecosystem()
 	await _test_powers()
 	await _test_speed()
+	await _test_terrain_look()
+	await _test_audio()
 	await _test_long_run()
 	print("POWER CASTS ", powers.casts)
 	print("HAND STATS ", hand.stats)
 	print("RELIGION STATS ", sim.religion.stats)
 	print("ECO STATS ", sim.eco.stats, " causes ", sim.eco.causes)
 	print("NAV STATS ", sim.nav.stats)
+	print("AUDIO CUES ", m.audio.cue_counts, " skipped ", m.audio.skipped)
 	print("AUTOTEST DONE passes=%d fails=%d (%.1fs)" % [passes, fails, (Time.get_ticks_msec() - t_start) / 1000.0])
 	get_tree().quit(0 if fails == 0 else 1)
 
@@ -652,6 +655,141 @@ func _test_speed() -> void:
 	m.advance(0.1)
 	_check("speed: 4x advances the simulation 4x", absf(sim.time - t - 0.4) < 0.01, "dt=%.2f" % (sim.time - t))
 	m.set_speed(1)
+
+# ---------------------------------------------------------------- terrain pass A
+func _test_terrain_look() -> void:
+	var dec: TerrainDecor = terrain.decor
+	_check("terrain: Blender rocks scattered on slopes and shores", dec.instance_count() > 100, "instances=%d" % dec.instance_count())
+	_check("terrain: height texture for water depth", terrain.height_tex != null and terrain.height_tex.get_width() == Terrain.W, "")
+	# a new island far out at sea: same material, shore rocks, height texture updated
+	var p := Vector3(-70, 0, 92)
+	var key := Vector2i(int((p.x + Terrain.HALF) / Terrain.CHUNK), int((p.z + Terrain.HALF) / Terrain.CHUNK))
+	var before := 0
+	for mi in dec._nodes.get(key, []): before += mi.multimesh.instance_count
+	for i in 60:
+		terrain.paint_land(p + Vector3(cos(i * 0.1) * 6.0, 0, sin(i * 0.13) * 4.0), 7.0, 1.0 / 20.0)
+	await _flush()
+	var after := 0
+	for k in [key, key + Vector2i(1, 0), key + Vector2i(0, -1), key + Vector2i(-1, 0)]:
+		for mi in dec._nodes.get(k, []):
+			if is_instance_valid(mi) and not mi.is_queued_for_deletion(): after += mi.multimesh.instance_count
+	_check("terrain: created land gets shoreline rocks", after > before, "%d -> %d" % [before, after])
+	var mi: MeshInstance3D = terrain.chunk_nodes[key]
+	_check("terrain: created land uses the blended ground shader", mi.mesh.surface_get_material(0) == terrain.mat, "")
+	var img := terrain.height_img
+	var gx := int(p.x + Terrain.HALF)
+	var gz := int(p.z + Terrain.HALF)
+	_check("terrain: water depth texture follows edits", img.get_pixel(gx, gz).r > Terrain.SEA, "h=%.2f" % img.get_pixel(gx, gz).r)
+	var n := terrain._normal(gx, gz)
+	_check("terrain: smooth normals are unit length", absf(n.length() - 1.0) < 0.001, "")
+
+# ---------------------------------------------------------------- audio
+func _test_audio() -> void:
+	var au: AudioDirector = m.audio
+	for b in ["Music", "Ambience", "SFX"]:
+		var i := AudioServer.get_bus_index(b)
+		_check("audio: bus %s exists and feeds Master" % b, i > 0 and AudioServer.get_bus_send(i) == "Master", "")
+	# every referenced sound file loads
+	var missing: Array = []
+	var files: Array = []
+	for c in AudioDirector.CUES:
+		for f in AudioDirector.CUES[c]: files.append("sfx/%s.wav" % f)
+	for c in AudioDirector.CUE_SPEC:
+		if not AudioDirector.CUES.has(c): files.append("sfx/%s.wav" % c)
+	for l in AudioDirector.AMB_LAYERS: files.append("ambience/%s.ogg" % l)
+	for f in ["ambience/village.ogg", "ambience/rain.ogg", "ambience/fire.ogg", "sfx/earth_rumble_loop.wav", "sfx/drain_loop.wav", "sfx/ui_click.wav", "sfx/ui_select.wav"]:
+		files.append(f)
+	for mu in AudioDirector.MUSIC: files.append("music/%s.ogg" % mu)
+	for f in files:
+		if not (load("res://assets/audio/" + f) is AudioStream): missing.append(f)
+	_check("audio: all %d sound files load" % files.size(), missing.is_empty(), str(missing))
+	# independent volumes + mute
+	var v0: Dictionary = au.volumes.duplicate()
+	au.set_volume("Music", 0.3)
+	au.set_volume("SFX", 0.6)
+	var mdb := AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Music"))
+	var sdb := AudioServer.get_bus_volume_db(AudioServer.get_bus_index("SFX"))
+	var adb := AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Ambience"))
+	_check("audio: Music / SFX / Ambience volumes are independent", absf(mdb - linear_to_db(0.3)) < 0.1 and absf(sdb - linear_to_db(0.6)) < 0.1 and absf(adb - linear_to_db(v0["Ambience"])) < 0.1, "music %.1f dB, sfx %.1f dB, ambience %.1f dB" % [mdb, sdb, adb])
+	au.set_muted(true)
+	var muted := AudioServer.is_bus_mute(0)
+	au.set_muted(false)
+	_check("audio: mute toggles the master bus", muted and not AudioServer.is_bus_mute(0), "")
+	for b in v0: au.set_volume(b, v0[b])
+	powers.select(powers.index_of("rain"))
+	powers.select(powers.index_of("rain"))
+	await _frames(1, false)
+	# cues fired by the hand / power / impact tests that already ran
+	var c: Dictionary = au.cue_counts
+	var need := ["hand_grab", "hand_place", "hand_throw", "life", "rain_gather", "rain_loop", "plenty", "lightning",
+		"meteor_incoming", "meteor_impact", "forest_grow", "tile_thunk", "brush_land", "brush_raise", "brush_lower", "brush_remove", "ui_select"]
+	var absent: Array = []
+	for k in need:
+		if c.get(k, 0) == 0: absent.append(k)
+	_check("audio: God Hand and every divine power produced its cue", absent.is_empty(), "missing=%s" % str(absent))
+	_check("audio: thrown things make an impact or splash", c.get("impact_light", 0) + c.get("impact_heavy", 0) + c.get("splash", 0) > 0, "")
+	var dist := {}
+	for k in ["lightning", "meteor_impact", "rain_gather", "life", "plenty", "forest_grow", "tile_thunk"]:
+		dist[load("res://assets/audio/sfx/%s.wav" % k).get_length()] = k
+	_check("audio: power cues are distinct files", dist.size() == 7, "")
+	# ambience follows the camera: coast vs forest vs high altitude
+	var rig: CameraRig = m.rig
+	var coast_p := Vector3.ZERO
+	for i in 120:
+		var q := Vector3(i * 0.8, 0, 0)
+		if not terrain.is_land(q.x, q.z) and terrain.is_land(q.x - 3.0, q.z):
+			coast_p = q
+			break
+	rig.set_view(coast_p, 40.0, 0.5, 0.8, true)
+	au._analyse()
+	var coast_mix: Dictionary = au.amb_target.duplicate()
+	var best = null
+	var best_n := 0
+	for r in sim.resources:
+		if r.type != WorldSim.RES_TREE or not r.alive: continue
+		var nn := 0
+		for o in sim.resources_in_radius(r.pos, 12.0):
+			if o.type == WorldSim.RES_TREE: nn += 1
+		if nn > best_n:
+			best_n = nn
+			best = r
+		if best_n > 25: break
+	rig.set_view(best.pos, 30.0, 0.5, 0.8, true)
+	au._analyse()
+	var forest_mix: Dictionary = au.amb_target.duplicate()
+	rig.set_view(Vector3.ZERO, 210.0, 0.5, 1.0, true)
+	au._analyse()
+	var high_mix: Dictionary = au.amb_target.duplicate()
+	_check("audio: coast ambience at the shore", coast_mix["coast"] > coast_mix["forest"] and coast_mix["coast"] > 0.4, str(coast_mix))
+	_check("audio: forest ambience among trees", forest_mix["forest"] > forest_mix["coast"] and forest_mix["forest"] > 0.3, str(forest_mix))
+	_check("audio: wind takes over when zoomed out", high_mix["high_wind"] > 0.8 and high_mix["forest"] < 0.3, str(high_mix))
+	# settlement + wildlife: occasional, never more voices than allowed
+	var t0 = sim.live_tribes()[0]
+	rig.set_view(t0.center, 35.0, 0.5, 0.8, true)
+	m.set_speed(1)
+	var c0 := _cue_total(["chop", "hammer", "bird", "rustle", "deer_huff", "rabbit_thump", "wolf_howl", "build_complete"])
+	var over := 0
+	for i in 900:     # 30 s of game time at 30 fps
+		await _frames(1)
+		var per := {}
+		for v in au.voices:
+			if v.playing: per[v.get_meta("cat")] = per.get(v.get_meta("cat"), 0) + 1
+		for cat in per:
+			if per[cat] > AudioDirector.LIMITS.get(cat, 99): over += 1
+	var c1 := _cue_total(["chop", "hammer", "bird", "rustle", "deer_huff", "rabbit_thump", "wolf_howl", "build_complete"])
+	_check("audio: settlement / wildlife sounds are occasional", c1 - c0 >= 2 and c1 - c0 <= 60, "%d cues in 30 s" % (c1 - c0))
+	_check("audio: voice limits respected", over == 0, "over-limit frames=%d" % over)
+	m.set_speed(0)
+	var c2 := _cue_total(["chop", "hammer", "bird", "rustle", "deer_huff", "rabbit_thump", "wolf_howl"])
+	for i in 300:
+		await get_tree().process_frame
+	_check("audio: pause silences settlement and wildlife cues", _cue_total(["chop", "hammer", "bird", "rustle", "deer_huff", "rabbit_thump", "wolf_howl"]) == c2, "")
+	m.set_speed(1)
+
+func _cue_total(keys: Array) -> int:
+	var n := 0
+	for k in keys: n += m.audio.cue_counts.get(k, 0)
+	return n
 
 # ---------------------------------------------------------------- 20 long run
 func _test_long_run() -> void:

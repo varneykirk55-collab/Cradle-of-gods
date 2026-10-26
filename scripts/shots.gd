@@ -238,6 +238,23 @@ func run(p_main) -> void:
 	print("SHOTS DONE fails=%d %s" % [fails, sim.stat_line()])
 	get_tree().quit(0 if fails == 0 else 1)
 
+func terrain_is_land(p: Vector3) -> bool:
+	return m.terrain.is_land(p.x, p.z)
+
+func _densest_trees() -> Vector3:
+	var best := Vector3.ZERO
+	var best_n := 0
+	for r in sim.resources:
+		if r.type != WorldSim.RES_TREE or not r.alive: continue
+		var n := 0
+		for o in sim.resources_in_radius(r.pos, 10.0):
+			if o.type == WorldSim.RES_TREE: n += 1
+		if n > best_n:
+			best_n = n
+			best = r.pos
+		if best_n > 22: break
+	return best
+
 func terrain_flush() -> void:
 	m.terrain.rebuild_dirty(true)
 	sim.nav.flush()
@@ -447,6 +464,28 @@ func _demo() -> void:
 	terrain_flush()
 	var t0: WorldSim.Tribe = _biggest()
 	m.set_speed(1)
+	# 0. ambience tour: along a shore (waves), into a forest (wind in leaves,
+	#    birds), over meadow toward the village (murmur, work sounds)
+	var shore := Vector3.ZERO
+	for i in 140:
+		var q := Vector3(-i * 0.7, 0, 20)
+		if not terrain_is_land(q) and terrain_is_land(q + Vector3(3, 0, 0)):
+			shore = q
+			break
+	rig.set_view(shore, 30.0, -1.2, 0.55, true)
+	hand.virtual_pointer = Vector3(500, 0, 500)
+	for i in 150:
+		rig.focus = shore + Vector3(0, 0, i * 0.08)
+		await _frames(1)
+	var grove := _densest_trees()
+	rig.set_view(grove, 26.0, 0.3, 0.6, true)
+	for i in 150:
+		rig.yaw = 0.3 + i * 0.003
+		await _frames(1)
+	for i in 90:
+		rig.focus = grove.lerp(t0.center, i / 90.0)
+		await _frames(1)
+	hand.virtual_pointer = null
 	# 1. glide over the village, hand hovering
 	rig.set_view(t0.center + Vector3(-10, 0, 8), 34.0, 0.6, 0.75, true)
 	for i in 60:
@@ -503,8 +542,25 @@ func _demo() -> void:
 		await _frames(8)
 	powers.toggle_land_mode()
 	# 6. miracles and smiting
-	powers.select(powers.index_of("rain"))
 	rig.set_view(t0.center, 40.0, 1.0, 0.65, true)
+	var meadow = sim.find_settle_spot(8.0, t0.center, 30.0)
+	if meadow != null:
+		powers.select(powers.index_of("forest"))
+		_point_at(meadow)
+		for i in 30:
+			powers.cooldown = 0.0
+			powers.cast("forest", meadow + Vector3(sin(i * 0.3) * 3.0, 0, cos(i * 0.3) * 3.0), 1.0 / 30.0)
+			await _frames(1)
+		powers.select(powers.index_of("villager"))
+		powers.cooldown = 0.0
+		powers.cast("villager", meadow, 0.0)
+		await _frames(50)
+	powers.select(powers.index_of("plenty"))
+	_point_at(t0.center)
+	powers.cooldown = 0.0
+	powers.cast("plenty", t0.center, 0.0)
+	await _frames(45)
+	powers.select(powers.index_of("rain"))
 	_point_at(t0.center)
 	await _frames(6)
 	powers.cast("rain", t0.center, 0.0)
@@ -522,6 +578,13 @@ func _demo() -> void:
 	_point_at(t2.center)
 	await _frames(6)
 	powers.cast("meteor", t2.center, 0.0)
-	await _frames(70)
+	await _frames(110)
+	# 7. rise above the island: high wind, and the music bed fades in
+	powers.select(powers.current)
+	m.audio._music_wait = 0.0
+	for i in 240:
+		rig.dist = lerpf(55.0, 200.0, smoothstep(0.0, 1.0, i / 240.0))
+		rig.pitch = lerpf(0.65, 1.0, i / 240.0)
+		await _frames(1)
 	print("DEMO DONE")
 	get_tree().quit()

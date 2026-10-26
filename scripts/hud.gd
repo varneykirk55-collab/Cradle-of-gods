@@ -40,6 +40,9 @@ var info_panel: PanelContainer
 var hand_button: Button
 var power_buttons: Array = []
 var speed_buttons: Array = []
+var audio_box: VBoxContainer
+var audio_sliders := {}
+var audio_mute: CheckBox
 var _acc := 0.0
 var _hover := -1
 var _hover_text := ""
@@ -153,6 +156,14 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 	faith_box.add_theme_font_size_override("font_size", 12)
 	faith_box.toggled.connect(func(on): set_faith_overlay(on))
 	opts.add_child(faith_box)
+	var snd := Button.new()
+	snd.text = "Sound"
+	snd.tooltip_text = "Music, ambience and effects volume. M mutes everything."
+	snd.add_theme_font_size_override("font_size", 12)
+	_style_button(snd)
+	snd.pressed.connect(func(): audio_box.visible = not audio_box.visible)
+	opts.add_child(snd)
+	_build_audio_box(sv)
 
 	# --- top-right tribes
 	var tp := _panel()
@@ -426,7 +437,8 @@ POWERS   1 Land  2 Remove  3 Raise  4 Lower  5 Life  6 Forest  7 Rain  8 Plenty
          B land mode (brush / tile)    C life type    [ / ] brush size
 RELIGION P infinite prayer (sandbox)   V faith overlay (gold = devout, white = priest,
          purple = heretic)   Miracles cost prayer, worship at shrines produces it
-TIME     Space pause   - / + slower / faster    T fold settlement list    H or F1 help    F12 screenshot"""
+TIME     Space pause   - / + slower / faster    T fold settlement list    H or F1 help    F12 screenshot
+SOUND    M mute    Sound button (top left): music, ambience and effects volume"""
 
 func _on_life_selected(i: int) -> void:
 	powers.life_type = Powers.LIFE_TYPES[i]
@@ -641,3 +653,40 @@ func _update_settlement() -> void:
 		sim.religion.tribe_label(t), int(t.devotion), t.worshippers, t.heretics, priests,
 		("Temple" if t.has_temple() else ("Shrine" if t.has_shrine() else ("under construction" if t.shrine != null else "none yet (needs 4 believers, wood and stone)"))),
 		hunters, ", ".join(status) if not status.is_empty() else "content"]
+
+# ------------------------------------------------------------------ audio settings
+func _build_audio_box(parent: Control) -> void:
+	audio_box = VBoxContainer.new()
+	audio_box.visible = false
+	audio_box.add_theme_constant_override("separation", 2)
+	parent.add_child(audio_box)
+	for bus in ["Master", "Music", "Ambience", "SFX"]:
+		var row := HBoxContainer.new()
+		audio_box.add_child(row)
+		var l := _label({"Master": "Volume", "Music": "Music", "Ambience": "Ambience", "SFX": "Effects"}[bus], 12)
+		l.custom_minimum_size = Vector2(72, 0)
+		row.add_child(l)
+		var sl := HSlider.new()
+		sl.min_value = 0.0
+		sl.max_value = 1.0
+		sl.step = 0.05
+		sl.custom_minimum_size = Vector2(150, 18)
+		sl.focus_mode = Control.FOCUS_NONE
+		sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		sl.value_changed.connect(func(v): main.audio.set_volume(bus, v))
+		row.add_child(sl)
+		audio_sliders[bus] = sl
+	audio_mute = CheckBox.new()
+	audio_mute.text = "Mute all [M]"
+	audio_mute.focus_mode = Control.FOCUS_NONE
+	audio_mute.add_theme_font_size_override("font_size", 12)
+	audio_mute.toggled.connect(func(on): main.audio.set_muted(on))
+	audio_box.add_child(audio_mute)
+	sync_audio()
+
+## Refreshes the sliders / mute box from the audio settings (no signals).
+func sync_audio() -> void:
+	if main.audio == null or audio_box == null: return
+	for bus in audio_sliders:
+		audio_sliders[bus].set_value_no_signal(main.audio.volumes.get(bus, 1.0))
+	audio_mute.set_pressed_no_signal(main.audio.muted)

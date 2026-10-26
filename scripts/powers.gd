@@ -8,6 +8,9 @@ signal power_changed(idx: int)
 signal flash(strength: float)
 signal cast_done(id: String, pos: Vector3)
 signal message(text: String)
+## Every frame a brush power (land / remove / raise / lower / forest) is applied.
+signal brush_cast(id: String, pos: Vector3)
+signal meteor_impact(pos: Vector3)
 
 const LIST := [
 	{"id": "land", "name": "Create Land", "short": "Land", "key": "1", "icon": "res://assets/icons/land.png", "color": Color(0.55, 0.95, 0.45), "cost": 0.0,
@@ -211,6 +214,8 @@ func cast(idx_or_id, p: Vector3, dt: float) -> void:
 	var id: String = LIST[idx]["id"]
 	casts[id] = casts.get(id, 0) + 1
 	var step := maxf(dt, 1.0 / 30.0)
+	if is_continuous(id) and not (id == "land" and land_mode == "tile"):
+		brush_cast.emit(id, p)
 	match id:
 		"land":
 			if land_mode == "tile":
@@ -414,6 +419,7 @@ func _meteor(p: Vector3) -> void:
 
 func _impact(p: Vector3, rock: Node3D) -> void:
 	rock.queue_free()
+	meteor_impact.emit(p)
 	FX.explosion(sim, p + Vector3(0, 0.5, 0), 1.6)
 	flash.emit(0.7)
 	rig.shake(1.6)

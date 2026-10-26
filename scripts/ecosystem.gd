@@ -281,6 +281,7 @@ func try_breed(a) -> void:
 
 func on_landed(a, v: Vector3) -> void:
 	var sp := v.length()
+	sim.impact.emit(a.position, sp, "animal")
 	if sp > 14.0 or (a.species != "bird" and sim.terrain.height_at(a.position.x, a.position.z) < Terrain.SEA - 0.5):
 		kill(a, "thrown")
 		sim.religion.witness(a.position, 18.0, "harm", 3.0)
