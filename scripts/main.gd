@@ -48,6 +48,7 @@ func _ready() -> void:
 	hand.name = "GodHand"
 	add_child(hand)
 	hand.setup(sim, terrain, rig, powers)
+	hand.hand_event.connect(sim.on_hand_event)   # villagers stop and stare at the hand
 	audio = AudioDirector.new()
 	audio.name = "Audio"
 	add_child(audio)
@@ -207,8 +208,28 @@ func _unhandled_input(e: InputEvent) -> void:
 			rig.focus = tr[idx].center
 			rig.dist = 32.0
 			hud.show_tribe(tr[idx])
+	elif k == KEY_F5:
+		save_game()
+	elif k == KEY_F9:
+		load_game()
 	elif k == KEY_F12:
 		save_shot("manual_%d" % Time.get_ticks_msec())
+
+## Save / load the single save slot (see save_game.gd); results show as a toast.
+func save_game(path := SaveGame.DEFAULT_PATH) -> Dictionary:
+	var r := SaveGame.save(self, path)
+	print("SAVE ", r)
+	if hud:
+		hud.show_toast(r["msg"])
+		if r["ok"]: hud.refresh_save_info()
+	return r
+
+func load_game(path := SaveGame.DEFAULT_PATH) -> Dictionary:
+	var r := SaveGame.load_into(self, path)
+	print("LOAD ", r)
+	if hud: hud.show_toast(r["msg"])
+	if r["ok"]: sim.log_event(r["msg"], Color(0.85, 0.92, 1.0))
+	return r
 
 func save_shot(name: String) -> void:
 	await RenderingServer.frame_post_draw

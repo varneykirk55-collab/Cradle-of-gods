@@ -39,7 +39,9 @@ The GL Compatibility renderer runs on low-end GPUs and in software (Mesa llvmpip
 | | Brush size | `[` / `]`, or the slider above the toolbar |
 | | Create Life type (villagers, deer, rabbits, wolves, birds) | `C`, or the drop-down above the toolbar |
 | **Religion** | Faith overlay (gold devout, pale believer, grey doubter, white priest, purple heretic) | `V` |
-| | Infinite prayer (sandbox) | `P` |
+| | Infinite prayer on / off (infinite powers vs belief-based powers) | `P`, or the checkbox top-left |
+| **World** | Save the world (one slot) | `F5`, or **Save** (top-left panel) |
+| | Load the saved world | `F9`, or **Load** (asks to confirm) |
 | **Time / UI** | Pause / resume | `Space` |
 | | Slower / faster (paused, 1x, 2x, 4x) | `-` / `+`, or the toolbar buttons |
 | | Fold the settlement list | `T` |
@@ -120,6 +122,49 @@ the tribe needs > explore. Tribes go Camp → Village → Town, build huts and s
 variants each, facing the hall), check the whole footprint for overlap, water and unevenness and
 level the plot, emigrate under population pressure, and react to famine, disasters and miracles.
 
+**Daily life and cultures** (milestone 2, `villager.gd`, `world_sim.gd`). Villagers have *energy*:
+work and walking tire them, and when worn out they walk to the doorstep of one of their tribe's huts or
+houses, lie down to sleep, then sit up and stretch before going back to work. They stop for a chat
+with an idle neighbour (taking turns to gesture and nod), children chase each other around the
+village, and every couple of minutes a fed, peaceful settlement lights a fire beside its hall and
+shares a **communal meal** (people sit in a ring and eat; it eases grievances). The devout slip away
+to **pray alone at the shrine** between ceremonies, with golden motes rising from them. Reactions to
+the god are visible: the devout kneel in awe at a miracle, others cheer, heretics fold their arms
+and shake their heads, people flee destruction close by and cower when it is further off, and
+everyone near the God Hand stops to stare and point when it grabs or throws something. Decisions
+got smarter too: in a famine most hands look for food instead of building, starving tribes hunt
+more, and gatherers look for work between where they are and home. Every tribe has a **culture**
+(shown in the settlement panel and the list tooltip), and colonies usually keep their parents':
+*Pious* (more ceremonies and private prayer, faithful children), *Industrious* (work faster, tire
+less), *Hunters* (hunt more, more hunters allowed), *Wanderers* (found colonies sooner) and
+*Festive* (more communal meals, more births). The modifiers are mild on purpose. All of this is
+decided per villager only when they pick a new task, using the existing spatial hash, so the cost
+does not grow with the square of the population.
+
+**Belief and powers.** The two modes are unchanged: **Infinite prayer** (`P` or the checkbox) makes
+every power free; with it off, miracles spend the prayer your followers generate. The HUD now shows
+which mode is on, prayer as `152 / 600`, and the current income (`+0.8/s`, hover the bar for the
+split between ceremonies, private prayer and believers' everyday faith). Each power icon carries its
+cost (Create Life shows the animal price when an animal is selected), turns red when you can't
+afford it, and the cursor ring turns red over the world. A refused power flashes the prayer bar and
+says what it costs, what you have and how to get more; the info box shows the shortfall. During a
+ceremony the shrine shows `Worship +x prayer/s` above it and golden motes rise from the
+worshippers; the settlement panel and list show each settlement's prayer per second. The existing
+economy is the same except for one small, new source: private prayer at a shrine (about an eighth of
+what a ceremony worshipper gives).
+
+**Save and load** (`save_game.gd`). One slot at `user://savegame.dat` (previous save kept as
+`.bak`). It stores the actual world, not just the seed: the full heightmap with every edit,
+moisture and fertility, all trees, rocks and bushes (size, growth, what's left of them), every tribe
+(name, culture, colour, stores, stage, religion, timers, shrine) with its buildings (model, rotation,
+construction progress), every villager (name, age, faith, resentment, heretic/priest, carried goods,
+energy), every animal, fires, prayer, the infinite-prayer setting, counters, the random-number state
+and the camera. Loading removes the current world completely before rebuilding, so nothing is
+duplicated; villagers simply choose a new task when they come back. Missing, damaged, incompatible
+or incomplete saves are reported and the current world is kept (everything is checked before
+anything is removed). Saving waits while the God Hand holds something or a thrown thing is still in
+the air.
+
 **Religion** (`religion.gd`). Each villager has *faith* and *resentment*:
 - Faith rises when they **witness** miracles (rain, plenty, life, forest, land raised near them,
   gifts), from worship, sermons and missionaries, and when the god helps during a crisis (rain on a
@@ -160,7 +205,7 @@ options, a hover tooltip, toasts, event log, help overlay and title splash.
 `terrain_decor.gd` rock scatter · `audio.gd` sound · `shaders/` terrain, water and rock shaders ·
 `nav.gd` A* grid and islands · `world_sim.gd` resources, tribes, buildings, fire, hand props, spatial
 hash, profiling · `villager.gd` · `religion.gd` · `ecosystem.gd` + `animal.gd` · `god_hand.gd` ·
-`powers.gd` · `camera_rig.gd` · `hud.gd` · `fx.gd` · `assets.gd` · `autotest.gd` (headless
+`powers.gd` · `camera_rig.gd` · `hud.gd` · `fx.gd` · `assets.gd` · `save_game.gd` (save / load) · `autotest.gd` (headless
 regression suite) · `shots.gd` (rendered tour, synthetic input test, scripted demo).
 
 ## Assets (all original)
@@ -183,7 +228,7 @@ regression suite) · `shots.gd` (rendered tour, synthetic input test, scripted d
 
 ## Testing
 `tools/run_tests.sh` (set `GODOT=/path/to/godot`):
-1. **Headless regression suite**: `godot --headless --path . --fixed-fps 30 -- --autotest` — 103
+1. **Headless regression suite**: `godot --headless --path . --fixed-fps 30 -- --autotest` — 143
    checks over ~35 simulated minutes (passes on world seeds 4242–4249; add `--seed=N` to try others): world generation, growth, gathering, settlement progression,
    stuck villagers, raise/lower + collider, brush land from deep ocean (walkable, beach, collider),
    tiles (seams, connectivity, repeated placement), remove land (splits islands), a villager walking
@@ -195,7 +240,13 @@ regression suite) · `shots.gd` (rendered tour, synthetic input test, scripted d
    power, pause and 4x speed, the terrain pass (rocks scattered, created land gets the shader,
    shore rocks and water depth), audio (buses, every file loads, independent volumes, mute, a cue
    for every hand action and power, coast / forest / high-wind mixing, occasional settlement and
-   wildlife sounds within voice limits, silence while paused), and a 20-minute stability run. Exits non-zero on failure; the last log
+   wildlife sounds within voice limits, silence while paused), milestone 2 (cultures, resting,
+   chats, meals, children playing, private prayer, awe / scorn / cower / flee reactions, staring at
+   the hand; refused powers cost nothing and say why, exact costs, toolbar and mode readouts, free
+   powers in infinite mode, prayer income, shrine readout; save then change the world then load and
+   compare everything, terrain edits and collider restored, no duplicates after loading twice,
+   the restored world keeps running, missing / damaged / wrong-version / incomplete saves rejected,
+   no saving out of the hand), and a 20-minute stability run (on the reloaded world). Exits non-zero on failure; the last log
    is `tools/last_autotest.log`.
 2. **Rendered tour + synthetic input** (`xvfb-run ... -- --shots`): renders `screenshots/*.png`, then
    drives the game with OS-level input events: `W` pan, wheel zoom, right-drag orbit, **left-drag on
@@ -223,7 +274,10 @@ audio director: 7.56 → 7.50 ms/step over the 20-minute run, so no measurable c
 are still unmeasured.
 
 ## Known limitations
-- No save/load, boats, war or diplomacy (warfare was out of scope by design).
+- No boats, war or diplomacy (out of scope by design). One save slot only.
+- A reload restores who and where everyone is, not what they were doing that instant: villagers
+  and animals pick a new task, and a ceremony or meal in progress continues.
+- There is no day/night cycle; daily rhythm comes from tiredness, meals and ceremonies.
 - Trees, bushes and buildings are still the milestone-1 low-poly models (vegetation Pass B has
   not started).
 - Decorative boulders have no collision and don't affect navigation. They only appear on steep

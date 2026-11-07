@@ -100,6 +100,36 @@ func generate(p_seed: int) -> void:
 			_build_chunk(Vector2i(cx, cz))
 	_update_collision()
 
+## Save support: the full heightmap (with every player edit), moisture and fertility.
+func save_state() -> Dictionary:
+	return {"size": SIZE, "seed": seed_value, "heights": heights.duplicate(), "moisture": moisture.duplicate(), "fertility": fertility.duplicate()}
+
+## True when td holds a heightmap this terrain can use.
+static func valid_state(td) -> bool:
+	if not (td is Dictionary): return false
+	if int(td.get("size", -1)) != SIZE: return false
+	for k in ["heights", "moisture", "fertility"]:
+		var arr = td.get(k)
+		if not (arr is PackedFloat32Array) or arr.size() != W * W: return false
+	return true
+
+## Replace the whole terrain with a saved one (meshes, rocks, collider, water depth).
+func load_state(td: Dictionary) -> void:
+	seed_value = int(td.get("seed", seed_value))
+	detail.seed = seed_value + 57     # coastline noise for future land painting, as generate() sets it
+	var h: PackedFloat32Array = td["heights"]
+	var m: PackedFloat32Array = td["moisture"]
+	var f: PackedFloat32Array = td["fertility"]
+	heights = h.duplicate()
+	moisture = m.duplicate()
+	fertility = f.duplicate()
+	dirty.clear()
+	for cz in SIZE / CHUNK:
+		for cx in SIZE / CHUNK:
+			_build_chunk(Vector2i(cx, cz))
+	_update_collision()
+	version += 1
+
 # ---------------------------------------------------------------- queries
 func grid_h(x: int, z: int) -> float:
 	return heights[clampi(z, 0, SIZE) * W + clampi(x, 0, SIZE)]

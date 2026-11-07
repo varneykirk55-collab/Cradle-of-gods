@@ -43,6 +43,12 @@ var speed_buttons: Array = []
 var audio_box: VBoxContainer
 var audio_sliders := {}
 var audio_mute: CheckBox
+var mode_label: Label
+var cost_labels: Array = []
+var save_button: Button
+var load_button: Button
+var load_confirm: ConfirmationDialog
+var _bar_tw: Tween
 var _acc := 0.0
 var _hover := -1
 var _hover_text := ""
@@ -142,13 +148,17 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 	pr.add_child(prayer_bar)
 	prayer_label = _label("", 13)
 	pr.add_child(prayer_label)
+	prayer_bar.mouse_filter = Control.MOUSE_FILTER_STOP
+	mode_label = _label("", 12, Color(0.85, 0.82, 0.72))
+	sv.add_child(mode_label)
 	var opts := HBoxContainer.new()
 	sv.add_child(opts)
 	sandbox_box = CheckBox.new()
 	sandbox_box.text = "Infinite prayer [P]"
 	sandbox_box.focus_mode = Control.FOCUS_NONE
 	sandbox_box.add_theme_font_size_override("font_size", 12)
-	sandbox_box.toggled.connect(func(on): sim.religion.sandbox = on)
+	sandbox_box.tooltip_text = "Infinite prayer: every power is free.\nOff: miracles cost the prayer your followers generate."
+	sandbox_box.toggled.connect(func(on): set_sandbox(on))
 	opts.add_child(sandbox_box)
 	faith_box = CheckBox.new()
 	faith_box.text = "Faith overlay [V]"
@@ -163,6 +173,25 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 	_style_button(snd)
 	snd.pressed.connect(func(): audio_box.visible = not audio_box.visible)
 	opts.add_child(snd)
+	save_button = Button.new()
+	save_button.text = "Save"
+	save_button.tooltip_text = "Save the world [F5]. One save slot; saving again replaces it."
+	save_button.add_theme_font_size_override("font_size", 12)
+	_style_button(save_button)
+	save_button.pressed.connect(func(): main.save_game())
+	opts.add_child(save_button)
+	load_button = Button.new()
+	load_button.text = "Load"
+	load_button.add_theme_font_size_override("font_size", 12)
+	_style_button(load_button)
+	load_button.pressed.connect(_on_load_pressed)
+	opts.add_child(load_button)
+	load_confirm = ConfirmationDialog.new()
+	load_confirm.title = "Load saved world"
+	load_confirm.ok_button_text = "Load"
+	load_confirm.confirmed.connect(func(): main.load_game())
+	add_child(load_confirm)
+	refresh_save_info()
 	_build_audio_box(sv)
 
 	# --- top-right tribes
@@ -260,6 +289,17 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 		b.mouse_entered.connect(_set_hover.bind(i))
 		b.mouse_exited.connect(_set_hover.bind(-1))
 		vb.add_child(b)
+		# prayer cost badge in the button's corner (red when you can't afford it)
+		var cl := _label("", 12, GOLD)
+		cl.add_theme_constant_override("outline_size", 4)
+		cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cl.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		cl.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		cl.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		cl.offset_right = -3
+		cl.offset_bottom = 0
+		b.add_child(cl)
+		cost_labels.append(cl)
 		var l := _label("%s %s" % [d["key"], d["short"]], 11)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vb.add_child(l)
@@ -367,6 +407,7 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 	hand.hover_changed.connect(func(t): _hover_text = t)
 	hand.settlement_clicked.connect(show_tribe)
 	powers.message.connect(show_toast)
+	powers.insufficient.connect(_on_insufficient)
 
 	# --- help overlay
 	help = _panel()
@@ -435,8 +476,11 @@ CAMERA   WASD / Arrows pan (Shift faster)   Q / E rotate   Wheel or R / F zoom
 POWERS   1 Land  2 Remove  3 Raise  4 Lower  5 Life  6 Forest  7 Rain  8 Plenty
          9 Lightning  0 Meteor     then left-click / hold on the world
          B land mode (brush / tile)    C life type    [ / ] brush size
-RELIGION P infinite prayer (sandbox)   V faith overlay (gold = devout, white = priest,
-         purple = heretic)   Miracles cost prayer, worship at shrines produces it
+RELIGION P infinite prayer on / off   V faith overlay (gold = devout, white = priest,
+         purple = heretic)   Miracles cost prayer (shown on each icon); ceremonies and
+         private prayer at shrines produce it (golden motes, rate shown above the shrine)
+WORLD    F5 save   F9 load (one save slot)   Each tribe has a culture: Pious, Industrious,
+         Hunters, Wanderers or Festive (see the settlement panel)
 TIME     Space pause   - / + slower / faster    T fold settlement list    H or F1 help    F12 screenshot
 SOUND    M mute    Sound button (top left): music, ambience and effects volume"""
 
@@ -477,6 +521,39 @@ func set_faith_overlay(on: bool) -> void:
 func set_sandbox(on: bool) -> void:
 	sim.religion.sandbox = on
 	sandbox_box.set_pressed_no_signal(on)
+	_update_stats()
+	_refresh_info()
+
+## Not enough prayer: the prayer bar flashes red (the toast explains why).
+func _on_insufficient(_idx: int, _cost: float) -> void:
+	if _bar_tw != null and _bar_tw.is_running(): return
+	prayer_bar.modulate = Color(1.0, 0.3, 0.25)
+	_bar_tw = create_tween()
+	_bar_tw.tween_property(prayer_bar, "modulate", Color.WHITE, 0.7)
+
+func _on_load_pressed() -> void:
+	var info := SaveGame.peek()
+	if not info["ok"]:
+		show_toast(info["msg"])
+		return
+	load_confirm.dialog_text = "Load the world saved %s?\n%s\n\nThe current world will be replaced." % [info["when"], info["summary"]]
+	load_confirm.popup_centered()
+
+## Tooltip on the Load button: what the save slot holds.
+func refresh_save_info() -> void:
+	if load_button == null: return
+	var info := SaveGame.peek()
+	load_button.tooltip_text = "Load the saved world [F9].\n" + ("Saved %s: %s" % [info["when"], info["summary"]] if info["ok"] else "No saved world yet.")
+
+## After a saved world replaces the current one.
+func after_load() -> void:
+	settle_tribe = null
+	settle_panel.visible = false
+	_hover_text = ""
+	sandbox_box.set_pressed_no_signal(sim.religion.sandbox)
+	set_faith_overlay(sim.show_faith)
+	_on_power_changed(powers.current)
+	_update_stats()
 
 func show_toast(text: String) -> void:
 	toast.text = text
@@ -526,7 +603,14 @@ func _refresh_info() -> void:
 		var extra := ""
 		if d["id"] == "land": extra = "  Mode: %s." % powers.land_mode.capitalize()
 		if d["id"] == "villager": extra = "  Creating: %s." % Powers.LIFE_NAMES[powers.life_type]
-		if d["cost"] > 0.0: extra += "  Cost %d prayer." % int(d["cost"])
+		var cost := powers.cost_of(i)
+		if cost > 0.0:
+			if sim.religion.sandbox:
+				extra += "  Cost %s prayer (free while Infinite prayer is on)." % Powers.fmt_cost(cost)
+			elif sim.religion.can_afford(cost):
+				extra += "  Cost %s prayer (you have %d)." % [Powers.fmt_cost(cost), int(sim.religion.prayer)]
+			else:
+				extra += "  Cost %s prayer - NOT ENOUGH: you have %d, need %s more." % [Powers.fmt_cost(cost), int(sim.religion.prayer), Powers.fmt_cost(ceilf((cost - sim.religion.prayer) * 10.0) / 10.0)]
 		info_title.text = "%s  [%s]%s" % [d["name"], d["key"], "  - selected" if i == powers.current else ""]
 		info_desc.text = d["desc"] + extra
 
@@ -570,8 +654,22 @@ func _update_stats() -> void:
 		sim.fires.size(), rt["worshippers"], rt["heretics"], rt["priests"], rt["shrines"], rt["temples"], int(rt["avg_faith"]),
 		ac["deer"], ac["rabbit"], ac["wolf"], ac["bird"],
 		Powers.LIST[powers.current]["name"] if powers.current >= 0 else "God Hand"]
-	prayer_bar.value = sim.religion.prayer
-	prayer_label.text = "inf" if sim.religion.sandbox else "%d" % int(sim.religion.prayer)
+	var rel := sim.religion
+	prayer_bar.value = rel.prayer
+	var rate := "+%.1f/s" % rel.income
+	if rel.prayer >= Religion.PRAYER_CAP - 0.5: rate += " (full)"
+	prayer_label.text = ("infinite  " if rel.sandbox else "%d / %d  " % [int(rel.prayer), int(Religion.PRAYER_CAP)]) + rate
+	mode_label.text = "Infinite powers: every miracle is free" if rel.sandbox else "Belief-based powers: miracles cost prayer"
+	mode_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0) if rel.sandbox else Color(1.0, 0.85, 0.55))
+	prayer_bar.tooltip_text = "Prayer power %d of %d, generated +%.2f per second:\n  ceremonies at shrines  +%.2f/s\n  private prayer  +%.2f/s\n  believers' everyday faith  +%.2f/s\nMiracles spend it; terrain tools are free." % [
+		int(rel.prayer), int(Religion.PRAYER_CAP), rel.income, rel.income_src["worship"], rel.income_src["prayer"], rel.income_src["quiet"]]
+	for i in power_buttons.size():
+		var c := powers.cost_of(i)
+		var ok := powers.affordable(i)
+		cost_labels[i].text = "" if c <= 0.0 else Powers.fmt_cost(c)
+		cost_labels[i].add_theme_color_override("font_color", (Color(0.75, 0.85, 1.0) if rel.sandbox else GOLD.lightened(0.25)) if ok else Color(1.0, 0.35, 0.3))
+		power_buttons[i].modulate = Color.WHITE if ok else Color(1.0, 0.62, 0.62)
+	if info_panel.visible: _refresh_info()
 	var rows := tribe_box.get_children()
 	for i in maxi(rows.size(), tr.size()):
 		if i >= tr.size():
@@ -600,8 +698,8 @@ func _update_stats() -> void:
 		row.text = "%s  %s  pop %d  %s %d%%%s%s%s%s" % [
 			t.name, t.stage, t.members.size(), sim.religion.tribe_label(t), int(t.devotion), holy, warn,
 			"  blessed" if t.blessed > 0.0 else "", "  STARVING" if t.starving else ""]
-		row.tooltip_text = "%s (%s): %d worshippers, %d heretics, tension %d%%\nwood %d  stone %d  food %d\nClick to visit." % [
-			t.name, sim.religion.tribe_label(t), t.worshippers, t.heretics, int(t.tension * 100), t.wood, t.stone, t.food]
+		row.tooltip_text = "%s (%s, %s): %d worshippers, %d heretics, tension %d%%\nwood %d  stone %d  food %d   prayer +%.2f/s\nClick to visit." % [
+			t.name, t.culture, sim.religion.tribe_label(t), t.worshippers, t.heretics, int(t.tension * 100), t.wood, t.stone, t.food, t.prayer_rate]
 
 var _swatch_tex: Texture2D
 func _swatch() -> Texture2D:
@@ -635,24 +733,32 @@ func _update_settlement() -> void:
 	var children := 0
 	var hunters := 0
 	var worshipping := 0
+	var resting := 0
+	var praying := 0
 	for v in t.members:
 		if v.priest: priests += 1
 		if v.is_child(): children += 1
 		if v.state == Villager.S.HUNT: hunters += 1
 		if v.state == Villager.S.WORSHIP: worshipping += 1
+		if v.state == Villager.S.REST or v.state == Villager.S.TO_REST: resting += 1
+		if v.state == Villager.S.PRAY: praying += 1
 	var status: Array = []
 	if t.starving: status.append("famine")
 	if t.blessed > 0.0: status.append("blessed")
 	if t.ceremony: status.append("ceremony in progress (%d worshipping)" % worshipping)
+	if t.meal: status.append("sharing a communal meal")
+	if praying > 0: status.append("%d praying" % praying)
+	if resting > 0: status.append("%d resting" % resting)
 	if t.inspired > 0.0: status.append("inspired by worship")
 	if t.tension >= 0.25: status.append("religious tension")
 	if t.heretical: status.append("heretic settlement")
 	settle_title.text = "%s - %s" % [t.name, t.stage]
-	settle_label.text = "Population %d (%d children)   Housing %d\nWood %d   Stone %d   Food %d\nBuildings: %s\n\nReligion: %s, devotion %d%%\nWorshippers %d   Heretics %d   Priests %d\nHoly site: %s\nHunters out: %d\nStatus: %s" % [
+	settle_label.text = "Culture: %s (%s)\nPopulation %d (%d children)   Housing %d\nWood %d   Stone %d   Food %d\nBuildings: %s\n\nReligion: %s, devotion %d%%\nWorshippers %d   Heretics %d   Priests %d\nHoly site: %s\nPrayer generated: +%.2f per second\nHunters out: %d\nStatus: %s" % [
+		t.culture, sim.culture_desc(t),
 		t.members.size(), children, sim.housing(t), t.wood, t.stone, t.food, blist.trim_suffix(", "),
 		sim.religion.tribe_label(t), int(t.devotion), t.worshippers, t.heretics, priests,
-		("Temple" if t.has_temple() else ("Shrine" if t.has_shrine() else ("under construction" if t.shrine != null else "none yet (needs 4 believers, wood and stone)"))),
-		hunters, ", ".join(status) if not status.is_empty() else "content"]
+		("Temple" if t.has_temple() else ("Shrine" if t.has_shrine() else ("under construction" if t.shrine != null else "none yet (needs 3 believers, 12 wood and 4 stone)"))),
+		t.prayer_rate, hunters, ", ".join(status) if not status.is_empty() else "content"]
 
 # ------------------------------------------------------------------ audio settings
 func _build_audio_box(parent: Control) -> void:

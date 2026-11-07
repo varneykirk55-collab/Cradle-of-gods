@@ -53,6 +53,9 @@ func run(p_main) -> void:
 	await _test_speed()
 	await _test_terrain_look()
 	await _test_audio()
+	await _test_living_world()
+	await _test_belief_clarity()
+	await _test_save_load()
 	await _test_long_run()
 	print("POWER CASTS ", powers.casts)
 	print("HAND STATS ", hand.stats)
@@ -805,6 +808,318 @@ func _cue_total(keys: Array) -> int:
 	var n := 0
 	for k in keys: n += m.audio.cue_counts.get(k, 0)
 	return n
+
+# ---------------------------------------------------------------- milestone 2: living world
+func _test_living_world() -> void:
+	var tr := sim.live_tribes()
+	var ok_cult := not tr.is_empty()
+	var cultures := {}
+	for t in tr:
+		if not WorldSim.CULTURES.has(t.culture): ok_cult = false
+		cultures[t.culture] = true
+	_check("living: every settlement has a culture", ok_cult, str(cultures.keys()))
+	_check("living: settlements differ in culture", cultures.size() >= mini(2, tr.size()), "")
+	var st: Dictionary = sim.stats
+	_check("living: tired villagers go home to rest", st["rests"] > 0, "rests=%d" % st["rests"])
+	_check("living: villagers stop to chat with each other", st["chats"] > 0, "chats=%d" % st["chats"])
+	_check("living: settlements share communal meals", st["meals"] > 0, "meals=%d" % st["meals"])
+	_check("living: children play together", st["plays"] > 0, "plays=%d" % st["plays"])
+	var e_ok := true
+	for v in sim.villagers:
+		if v.energy < 0.0 or v.energy > 1.0: e_ok = false
+	_check("living: energy stays within 0..1", e_ok, "")
+	# private prayer at the shrine, outside ceremonies and meals
+	var holy = null
+	for t in tr:
+		if t.has_shrine(): holy = t
+	if holy == null:
+		_check("living: believers pray privately at the shrine", false, "no shrine")
+	else:
+		var pp0: int = sim.religion.stats["private_prayers"]
+		var pr0: float = sim.religion.income_src["prayer"]
+		holy.food += 60.0
+		sim._end_meal(holy)
+		holy.ceremony = false
+		var nc: float = holy.next_ceremony
+		for i in 1200:
+			holy.next_ceremony = 999.0
+			holy.next_meal = 999.0
+			for v in holy.members:
+				if not v.heretic and v.faith < 70.0: v.faith = 70.0
+			sim._step(0.1)
+		holy.next_ceremony = nc
+		holy.next_meal = 30.0
+		_check("living: believers pray privately at the shrine", sim.religion.stats["private_prayers"] > pp0,
+			"private prayers %d -> %d, prayer income from it %.3f/s" % [pp0, sim.religion.stats["private_prayers"], sim.religion.income_src["prayer"]])
+	# reactions to divine acts
+	var t0 = tr[0]
+	var adults: Array = t0.members.filter(func(v): return not v.is_child() and not v.is_busy_with_god() and not v.priest)
+	if adults.size() >= 2:
+		var a = adults[0]
+		var b = adults[1]
+		for v in [a, b]:
+			v._drop_carry()
+			v._reset(0.0)
+		a.set_heretic(false)
+		a.faith = 85.0
+		b.set_heretic(true, "test")
+		a.react("good", a.position + Vector3(3, 0, 0))
+		b.react("good", b.position + Vector3(3, 0, 0))
+		_check("living: the devout kneel in awe at a miracle", a.state == Villager.S.AWE, "state=%s" % Villager.STATE_NAMES[a.state])
+		_check("living: heretics scoff at miracles", b.state == Villager.S.SCORN, "state=%s" % Villager.STATE_NAMES[b.state])
+		a._reset(0.0)
+		a.react("harm", a.position + Vector3(20, 0, 0))
+		b._reset(0.0)
+		b.react("harm", b.position + Vector3(2, 0, 0))
+		_check("living: destruction far away makes people cower, close by makes them flee",
+			a.state == Villager.S.COWER and b.state == Villager.S.FLEE, "%s / %s" % [Villager.STATE_NAMES[a.state], Villager.STATE_NAMES[b.state]])
+		b.set_heretic(false)
+		b.faith = 40.0
+		a._reset(0.5)
+		b._reset(0.5)
+	else:
+		_check("living: villagers react to divine acts", false, "not enough adults")
+	var g0: int = st["gawks"]
+	for t in tr:
+		sim._rebuild_grid()
+		sim.on_hand_event("grab", t.center + Vector3(0, 4, 0), "villager")
+		if st["gawks"] > g0: break
+	_check("living: villagers stop and stare at the God Hand", st["gawks"] > g0, "gawks=%d" % (st["gawks"] - g0))
+	var describe_ok := true
+	for v in sim.villagers:
+		if v.describe() == "": describe_ok = false
+	_check("living: every activity has a readable description", describe_ok and Villager.STATE_NAMES.size() == Villager.S.size(), "")
+
+# ---------------------------------------------------------------- milestone 2: belief clarity
+func _test_belief_clarity() -> void:
+	var rel := sim.religion
+	var hud: Hud = m.hud
+	var sb0: bool = rel.sandbox
+	var p0: float = rel.prayer
+	var t0 = sim.live_tribes()[0]
+	var rain := powers.index_of("rain")
+	var life := powers.index_of("villager")
+	var refused: Array = []
+	var msgs: Array = []
+	var on_ins := func(_i, c): refused.append(c)
+	var on_msg := func(txt): msgs.append(txt)
+	powers.insufficient.connect(on_ins)
+	powers.message.connect(on_msg)
+	# belief-based mode: refused when short, exact cost when affordable
+	hud.set_sandbox(false)
+	rel.prayer = 10.0
+	powers.cooldown = 0.0
+	powers._msg_t = 0.0
+	powers.cast("rain", t0.center, 0.0)
+	_check("belief: unaffordable miracle is refused and costs nothing", rel.prayer == 10.0 and refused.size() == 1 and is_equal_approx(refused[0], 25.0),
+		"prayer=%.1f refused=%s" % [rel.prayer, str(refused)])
+	_check("belief: the refusal says what it costs and what you have", msgs.size() > 0 and "costs 25" in str(msgs[-1]) and "you have 10" in str(msgs[-1]),
+		str(msgs[-1]) if msgs.size() > 0 else "no message")
+	hud._update_stats()
+	_check("belief: unaffordable powers are marked on the toolbar", hud.power_buttons[rain].modulate != Color.WHITE and hud.cost_labels[rain].text == "25", "")
+	_check("belief: the HUD names the current mode", "Belief" in hud.mode_label.text and "10 / 600" in hud.prayer_label.text, hud.prayer_label.text)
+	rel.prayer = 100.0
+	powers.cooldown = 0.0
+	powers.cast("rain", t0.center, 0.0)
+	_check("belief: casting spends exactly the listed cost", is_equal_approx(rel.prayer, 75.0), "prayer=%.2f" % rel.prayer)
+	powers.life_type = "deer"
+	hud._update_stats()
+	_check("belief: Create Life shows the animal price", is_equal_approx(powers.cost_of(life), 7.5) and hud.cost_labels[life].text == "7.5", hud.cost_labels[life].text)
+	powers.life_type = "villagers"
+	_check("belief: fractional costs are readable", Powers.fmt_cost(0.6) == "0.6" and Powers.fmt_cost(15.0) == "15", "")
+	# infinite powers: the toggle is preserved and everything is free
+	hud.set_sandbox(true)
+	rel.prayer = 0.0
+	var food0: float = t0.food
+	powers.cooldown = 0.0
+	powers.cast("plenty", t0.center, 0.0)
+	hud._update_stats()
+	_check("belief: infinite powers cost nothing", t0.food > food0 + 20.0 and rel.prayer == 0.0, "food %.0f -> %.0f, prayer %.1f" % [food0, t0.food, rel.prayer])
+	_check("belief: infinite mode shown and nothing marked unaffordable", "Infinite" in hud.mode_label.text and hud.power_buttons[rain].modulate == Color.WHITE and hud.sandbox_box.button_pressed, "")
+	# income readout
+	hud.set_sandbox(false)
+	rel.prayer = 100.0
+	for i in 300: sim._step(0.1)
+	_check("belief: prayer income is measured", rel.income > 0.0 and rel.income_src.has("worship") and rel.income_src.has("quiet"),
+		"income %.3f/s %s" % [rel.income, str(rel.income_src)])
+	# a ceremony shows its prayer above the shrine
+	var holy = null
+	for t in sim.live_tribes():
+		if t.has_shrine(): holy = t
+	if holy != null:
+		holy.ceremony = true
+		holy.ceremony_t = 16.0
+		rel._tick(1.0)
+		var shown: bool = holy.prayer_label != null and holy.prayer_label.visible and "prayer/s" in holy.prayer_label.text
+		holy.ceremony = false
+		var nc: float = holy.next_ceremony
+		holy.next_ceremony = 999.0
+		rel._tick(1.0)
+		holy.next_ceremony = nc
+		_check("belief: ceremonies show their prayer above the shrine", shown and not holy.prayer_label.visible, "")
+	else:
+		_check("belief: ceremonies show their prayer above the shrine", false, "no shrine")
+	powers.insufficient.disconnect(on_ins)
+	powers.message.disconnect(on_msg)
+	hud.set_sandbox(sb0)
+	rel.prayer = p0
+
+# ---------------------------------------------------------------- milestone 2: save / load
+const SAVE_TEST := "user://autotest_save.dat"
+
+func _remove_save(path: String) -> void:
+	for p in [path, path + ".bak", path + ".tmp"]:
+		if FileAccess.file_exists(p): DirAccess.remove_absolute(p)
+
+func _snapshot() -> Dictionary:
+	var d := {}
+	d["seed"] = m.world_seed
+	d["time"] = sim.time
+	d["pop"] = sim.population()
+	d["tribes"] = sim.tribes.size()
+	d["live tribes"] = sim.live_tribes().size()
+	d["buildings"] = sim.building_count()
+	var built := 0
+	var holy := 0
+	var stores := 0.0
+	var cultures: Array = []
+	for t in sim.tribes:
+		stores += t.wood + t.stone + t.food
+		cultures.append(t.culture)
+		for b in t.buildings:
+			if b.built: built += 1
+			if b.type in ["shrine", "temple"]: holy += 1
+	d["built"] = built
+	d["holy sites"] = holy
+	d["stores"] = snappedf(stores, 0.01)
+	d["cultures"] = str(cultures)
+	d["trees"] = sim.count_type(WorldSim.RES_TREE)
+	d["rocks"] = sim.count_type(WorldSim.RES_ROCK)
+	d["bushes"] = sim.count_type(WorldSim.RES_BUSH)
+	d["animals"] = str(sim.eco.counts())
+	d["fires"] = sim.fires.size()
+	d["prayer"] = snappedf(sim.religion.prayer, 0.001)
+	d["sandbox"] = sim.religion.sandbox
+	var hs := 0.0
+	for h in terrain.heights: hs += h
+	d["terrain"] = snappedf(hs, 0.01)
+	var names: Array = []
+	var faith := 0.0
+	var heretics := 0
+	var priests := 0
+	for v in sim.villagers:
+		names.append("%s/%d" % [v.vname, v.tribe.id])
+		faith += v.faith
+		if v.heretic: heretics += 1
+		if v.priest: priests += 1
+	names.sort()
+	d["villager names"] = str(names).hash()
+	d["faith"] = snappedf(faith, 0.01)
+	d["heretics"] = heretics
+	d["priests"] = priests
+	return d
+
+func _live_nodes() -> Vector2i:
+	var nv := 0
+	for c in sim.get_children():
+		if c is Villager and not c.dead and not c.is_queued_for_deletion(): nv += 1
+	var na := 0
+	for c in sim.eco.get_children():
+		if c is Animal and not c.dead and not c.is_queued_for_deletion(): na += 1
+	return Vector2i(nv, na)
+
+func _test_save_load() -> void:
+	_remove_save(SAVE_TEST)
+	_check("save: Save and Load buttons in the HUD", m.hud.save_button != null and m.hud.load_button != null, "")
+	var pop0 := sim.population()
+	var r0: Dictionary = m.load_game("user://autotest_missing.dat")
+	_check("load: a missing save is reported and the world kept", not r0["ok"] and sim.population() == pop0, str(r0["msg"]))
+	# make a terrain edit and a distinctive state worth preserving
+	var t0 = sim.live_tribes()[0]
+	var ep: Vector3 = t0.center + Vector3(18, 0, 7)
+	for i in 20: powers.cast("raise", ep, 1.0 / 30.0)
+	await _flush()
+	var h_edit := terrain.height_at(ep.x, ep.z)
+	m.hud.set_sandbox(false)
+	sim.religion.prayer = 123.0
+	for i in 300:
+		if SaveGame.busy_reason(m) == "": break
+		sim._step(0.1)
+	var snap := _snapshot()
+	var r1: Dictionary = m.save_game(SAVE_TEST)
+	_check("save: world written to user://", r1["ok"] and FileAccess.file_exists(SAVE_TEST), str(r1["msg"]))
+	var nodes0 := _live_nodes()
+	# change the world a lot after saving
+	for i in 6:
+		if not sim.villagers.is_empty(): sim.kill_villager(sim.villagers[0], "test")
+	terrain.modify(ep, 6.0, -9.0)
+	await _flush()
+	t0.wood += 500.0
+	if not t0.buildings.is_empty(): sim.destroy_building(t0.buildings[t0.buildings.size() - 1], " for the test")
+	m.hud.set_sandbox(true)
+	sim.religion.prayer = 7.0
+	sim.prewarm(15.0)
+	var r2: Dictionary = m.load_game(SAVE_TEST)
+	await _frames(3, false)
+	_check("load: saved world restored", r2["ok"], str(r2["msg"]))
+	var after := _snapshot()
+	var diff: Array = []
+	for k in snap:
+		if str(snap[k]) != str(after[k]): diff.append("%s %s -> %s" % [k, str(snap[k]), str(after[k])])
+	_check("load: villagers, tribes, buildings, resources, animals and stores match the save", diff.is_empty(), str(diff))
+	_check("load: terrain edits come back (not regenerated from the seed)", absf(terrain.height_at(ep.x, ep.z) - h_edit) < 0.01,
+		"edited h=%.2f now %.2f" % [h_edit, terrain.height_at(ep.x, ep.z)])
+	_check("load: prayer and the infinite-powers setting restored", snap["prayer"] == after["prayer"] and not sim.religion.sandbox and not m.hud.sandbox_box.button_pressed, "")
+	var collider_ok := false
+	var q := PhysicsRayQueryParameters3D.create(Vector3(ep.x, 100, ep.z), Vector3(ep.x, -100, ep.z))
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var hit: Dictionary = m.get_world_3d().direct_space_state.intersect_ray(q)
+	if not hit.is_empty(): collider_ok = absf(hit["position"].y - h_edit) < 0.6
+	_check("load: collider matches the restored terrain", collider_ok, "")
+	_check("load: navigation rebuilt for the restored terrain", sim.nav.walkable(t0.center) or sim.nav.nearest_walkable(t0.center, 4) != null, "")
+	var nodes1 := _live_nodes()
+	_check("load: no leftover or duplicated villager / animal nodes", nodes1 == Vector2i(sim.villagers.size(), sim.eco.animals.size()) and nodes1 == nodes0,
+		"nodes %s, saved %s, lists %d/%d" % [str(nodes1), str(nodes0), sim.villagers.size(), sim.eco.animals.size()])
+	# loading twice must not duplicate anything
+	m.load_game(SAVE_TEST)
+	await _frames(3, false)
+	var again := _snapshot()
+	_check("load: reloading again does not duplicate villagers or buildings",
+		again["pop"] == snap["pop"] and again["buildings"] == snap["buildings"] and _live_nodes() == nodes0, "pop %d buildings %d" % [again["pop"], again["buildings"]])
+	# the restored world keeps living
+	var dep0: int = sim.stats.get("deposits", 0)
+	var t_before := sim.time
+	sim.prewarm(60.0)
+	_check("load: the restored world keeps running (gathering, time)", sim.stats.get("deposits", 0) > dep0 and sim.time > t_before + 59.0 and sim.population() > 0,
+		"deposits +%d" % (sim.stats.get("deposits", 0) - dep0))
+	# damaged / incompatible / incomplete saves are rejected without touching the world
+	var pop1 := sim.population()
+	var bad := "user://autotest_bad.dat"
+	var f := FileAccess.open(bad, FileAccess.WRITE)
+	f.store_string("this is not a save file")
+	f.close()
+	var rb: Dictionary = m.load_game(bad)
+	_check("load: a damaged file is rejected and the world kept", not rb["ok"] and sim.population() == pop1, str(rb["msg"]))
+	f = FileAccess.open(bad, FileAccess.WRITE)
+	f.store_var({"magic": SaveGame.MAGIC, "version": 999}, false)
+	f.close()
+	var rv: Dictionary = m.load_game(bad)
+	_check("load: an incompatible version is rejected", not rv["ok"] and "incompatible" in str(rv["msg"]) and sim.population() == pop1, str(rv["msg"]))
+	f = FileAccess.open(bad, FileAccess.WRITE)
+	f.store_var({"magic": SaveGame.MAGIC, "version": SaveGame.VERSION, "terrain": {}}, false)
+	f.close()
+	var ri: Dictionary = m.load_game(bad)
+	_check("load: an incomplete save is rejected", not ri["ok"] and sim.population() == pop1, str(ri["msg"]))
+	DirAccess.remove_absolute(bad)
+	# nothing can be saved out of the God Hand's grip
+	hand.held = {"kind": "villager", "obj": sim.villagers[0]}
+	var rh := SaveGame.save(m, "user://autotest_busy.dat")
+	hand.held = null
+	_check("save: refused while the God Hand holds something", not rh["ok"] and not FileAccess.file_exists("user://autotest_busy.dat"), str(rh["msg"]))
+	_remove_save(SAVE_TEST)
+	m.hud.set_sandbox(true)
+	print("STAT ", sim.stat_line())
 
 # ---------------------------------------------------------------- 20 long run
 func _test_long_run() -> void:

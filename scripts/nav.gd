@@ -131,6 +131,14 @@ func tick(dt: float) -> void:
 	if _island_dirty and _island_t <= 0.0:
 		_flood_islands()
 
+## Rebuild everything from the current terrain (after a saved world is loaded).
+## Building footprints are cleared; the caller re-applies them.
+func rebuild_all() -> void:
+	_footprints.clear()
+	_has_dirty = false
+	_refresh(Rect2i(0, 0, Terrain.W, Terrain.W))
+	_flood_islands()
+
 func flush() -> void:
 	if _has_dirty:
 		_refresh(_dirty_rect)

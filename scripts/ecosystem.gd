@@ -79,6 +79,53 @@ func spawn(sp: String, pos: Vector3, baby: bool) -> Animal:
 	animals.append(a)
 	return a
 
+## Save support: every living animal (moment-to-moment behaviour is not kept).
+func serialize() -> Dictionary:
+	var out: Array = []
+	for a in animals:
+		if a.dead: continue
+		out.append({"sp": a.species, "pos": a.position, "rot": a.rotation.y, "age": a.age, "hunger": a.hunger,
+			"grow": a.grow, "breed": a.breed_t})
+	return {"animals": out, "stats": stats.duplicate(), "causes": causes.duplicate()}
+
+## Removes every animal (used before restoring a saved world).
+func clear() -> void:
+	for a in animals:
+		a.dead = true
+		a.queue_free()
+	animals.clear()
+	grid.clear()
+
+func restore(d: Dictionary) -> void:
+	clear()
+	var st = d.get("stats", {})
+	if st is Dictionary:
+		for k in st: stats[k] = st[k]
+	var cs = d.get("causes", {})
+	if cs is Dictionary: causes = cs.duplicate()
+	for ad in d.get("animals", []):
+		if not (ad is Dictionary) or not SPEC.has(ad.get("sp", "")): continue
+		var sp: String = ad["sp"]
+		var p: Vector3 = ad.get("pos", Vector3.ZERO)
+		var a := Animal.new()
+		add_child(a)
+		var g: float = clampf(float(ad.get("grow", 1.0)), 0.3, 1.0)
+		a.setup(self, sp, p, g < 1.0)
+		a.position = p
+		a.rotation.y = float(ad.get("rot", 0.0))
+		a.age = float(ad.get("age", 0.0))
+		a.hunger = clampf(float(ad.get("hunger", 0.2)), 0.0, 0.95)
+		a.grow = g
+		a.scale = Vector3.ONE * g
+		a.breed_t = float(ad.get("breed", SPEC[sp]["breed"]))
+		if sp == "bird":
+			a.state = Animal.S.FLY
+			a._bird_target()
+		else:
+			a._wander()
+		animals.append(a)
+	rebuild_grid()
+
 func kill(a, cause: String) -> void:
 	if a == null or a.dead: return
 	a.dead = true
@@ -211,7 +258,7 @@ func find_prey(pos: Vector3, r: float, hunter) -> Variant:
 	var hunters := 0
 	for v in t.members:
 		if v.state == Villager.S.HUNT: hunters += 1
-	if hunters >= maxi(1, t.members.size() / 8): return null
+	if hunters >= maxi(1, t.members.size() / int(sim.cmod(t, "hunters", 8))): return null
 	var local := {"deer": 0, "rabbit": 0}
 	var cands := near(pos, r)
 	for o in cands:

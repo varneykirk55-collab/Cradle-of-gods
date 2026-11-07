@@ -22,9 +22,18 @@ const PRAYER_CAP := 600.0
 var sim
 var prayer := 150.0
 var sandbox := false
-var stats := {"conversions": 0, "heresies": 0, "recants": 0, "ceremonies": 0, "missions": 0, "schisms": 0, "sermons": 0, "persuasions": 0}
+var stats := {"conversions": 0, "heresies": 0, "recants": 0, "ceremonies": 0, "missions": 0, "schisms": 0, "sermons": 0, "persuasions": 0,
+	"private_prayers": 0}
 var _t := 0.0
 var _miracle_log_t := 0.0
+## Prayer income, for the HUD: smoothed prayer generated per simulated second,
+## in total and by source ("worship" = ceremonies, "prayer" = private prayer at
+## a shrine, "quiet" = believers' everyday faith). Measuring it changes nothing.
+var income := 0.0
+var income_src := {"worship": 0.0, "prayer": 0.0, "quiet": 0.0}
+var _acc := 0.0
+var _acc_src := {}
+var _acc_tribe := {}
 
 func setup(p_sim) -> void:
 	sim = p_sim
@@ -39,8 +48,30 @@ func spend(cost: float) -> bool:
 	prayer -= cost
 	return true
 
-func add_prayer(a: float) -> void:
+func add_prayer(a: float, t = null, src := "") -> void:
 	prayer = minf(PRAYER_CAP, prayer + a)
+	_acc += a
+	if src != "": _acc_src[src] = _acc_src.get(src, 0.0) + a
+	if t != null: _acc_tribe[t] = _acc_tribe.get(t, 0.0) + a
+
+## Smooth the last second's generation into the displayed rates.
+func _update_income(window: float) -> void:
+	var k := 0.35
+	income = lerpf(income, _acc / window, k)
+	for src in income_src:
+		income_src[src] = lerpf(income_src[src], _acc_src.get(src, 0.0) / window, k)
+	for t in sim.tribes:
+		t.prayer_rate = lerpf(t.prayer_rate, _acc_tribe.get(t, 0.0) / window, k) if t.alive else 0.0
+	_acc = 0.0
+	_acc_src.clear()
+	_acc_tribe.clear()
+
+func reset_income() -> void:
+	income = 0.0
+	for src in income_src: income_src[src] = 0.0
+	_acc = 0.0
+	_acc_src.clear()
+	_acc_tribe.clear()
 
 # ------------------------------------------------------------------ queries
 static func is_believer(v) -> bool:
@@ -166,9 +197,17 @@ func worship_tick(v, dt: float) -> void:
 	var t = v.tribe
 	var mult := 2.0 if t.has_temple() else 1.0
 	if t.tension > 0.3: mult *= 0.5     # heretics heckle the ceremony
-	add_prayer(dt * (0.12 + v.faith / 400.0) * mult)
+	add_prayer(dt * (0.12 + v.faith / 400.0) * mult, t, "worship")
 	v.faith = minf(100.0, v.faith + dt * 0.45 * mult)
 	v.resentment = maxf(0.0, v.resentment - dt * 0.3)
+
+## A believer praying alone at the shrine outside ceremonies: a trickle of
+## prayer (about an eighth of what a ceremony worshipper gives) and some comfort.
+func prayer_tick(v, dt: float) -> void:
+	var t = v.tribe
+	add_prayer(dt * 0.035 * (1.5 if t.has_temple() else 1.0), t, "prayer")
+	v.faith = minf(100.0, v.faith + dt * 0.2)
+	v.resentment = maxf(0.0, v.resentment - dt * 0.15)
 
 func priest_duty(v) -> bool:
 	var t = v.tribe
@@ -252,6 +291,7 @@ func update(dt: float) -> void:
 	_t -= dt
 	if _t > 0.0: return
 	_t = 1.0
+	_update_income(1.0)
 	_tick(1.0)
 
 func _tick(dt: float) -> void:
@@ -301,7 +341,7 @@ func _tick_tribe(t, dt: float) -> void:
 		fsum += v.faith
 		# believers' quiet prayers
 		if not v.heretic and v.faith >= BELIEVER:
-			add_prayer(dt * 0.006 * v.faith / 100.0 * (1.5 if has_shrine else 1.0))
+			add_prayer(dt * 0.006 * v.faith / 100.0 * (1.5 if has_shrine else 1.0), t, "quiet")
 		v._update_marker()
 	t.worshippers = believers
 	t.heretics = heretics
@@ -330,7 +370,7 @@ func _tick_tribe(t, dt: float) -> void:
 			if t.ceremony_t <= 0.0:
 				t.ceremony = false
 				t.inspired = 60.0
-				t.next_ceremony = randf_range(45.0, 70.0) if has_temple else randf_range(70.0, 100.0)
+				t.next_ceremony = (randf_range(45.0, 70.0) if has_temple else randf_range(70.0, 100.0)) * float(sim.cmod(t, "ceremony", 1.0))
 		else:
 			t.next_ceremony -= dt
 			if t.next_ceremony <= 0.0 and believers >= 2:
@@ -341,6 +381,20 @@ func _tick_tribe(t, dt: float) -> void:
 					sim.log_event("%s gathers to worship at the %s." % [t.name, t.shrine.type], Color(1.0, 0.92, 0.6))
 	else:
 		t.ceremony = false
+	# make the prayer a ceremony produces visible: a rate above the shrine and
+	# golden motes rising from the worshippers
+	if t.ceremony and has_shrine:
+		sim.show_prayer_label(t, "Worship  +%.1f prayer/s" % t.prayer_rate)
+		var praying: Array = []
+		for v in t.members:
+			if v.state == Villager.S.WORSHIP: praying.append(v)
+		if not praying.is_empty():
+			var w = praying[randi() % praying.size()]
+			if w._on_screen(): FX.prayer(sim, w.position + Vector3(0, 1.4, 0), 5)
+			if has_temple or praying.size() > 4:
+				FX.prayer(sim, t.shrine.pos + Vector3(0, 3.0 if has_temple else 2.0, 0), 4)
+	else:
+		sim.hide_prayer_label(t)
 	t.inspired = maxf(0.0, t.inspired - dt)
 	# missionaries
 	if has_temple:

@@ -164,6 +164,20 @@ static func dust(parent: Node, pos: Vector3) -> void:
 	p.damping_max = 2.0
 	p.color_ramp = _ramp([Color(0.85, 0.78, 0.62, 0.7), Color(0.85, 0.78, 0.62, 0.0)])
 
+## Golden motes drifting up from worshippers: prayer rising to the god.
+static func prayer(parent: Node, pos: Vector3, amount := 4) -> void:
+	var p := _base(parent, pos, amount, 2.2, true)
+	p.explosiveness = 0.25
+	p.mesh = _quad(0.26, pmat(Color(1, 1, 1), true))
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.5
+	p.direction = Vector3.UP
+	p.spread = 12.0
+	p.gravity = Vector3(0, 1.6, 0)
+	p.initial_velocity_min = 0.7
+	p.initial_velocity_max = 1.4
+	p.color_ramp = _ramp([Color(1.0, 0.9, 0.5, 0.0), Color(1.0, 0.85, 0.4, 0.95), Color(1.0, 0.92, 0.6, 0.0)])
+
 static func soul(parent: Node, pos: Vector3) -> void:
 	var p := _base(parent, pos + Vector3(0, 0.5, 0), 8, 1.6, true)
 	p.mesh = _quad(0.3, pmat(Color(1, 1, 1), true))

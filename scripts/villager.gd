@@ -7,11 +7,19 @@ extends Node3D
 ## procedural poses, and carries faith / resentment for the religion system.
 
 enum S { IDLE, TO_RES, GATHER, RETURN, TO_BUILD, BUILD, WANDER, TO_WORSHIP, WORSHIP, PREACH, TALK,
-	HUNT, FLEE, CARRIED, FLYING, STUNNED, MISSION, CHEER }
+	HUNT, FLEE, CARRIED, FLYING, STUNNED, MISSION, CHEER,
+	TO_REST, REST, CHAT, TO_PRAY, PRAY, AWE, SCORN, LOOK, COWER, TO_MEAL, MEAL }
 
 const STATE_NAMES := ["idle", "fetching", "gathering", "carrying home", "going to build", "building", "wandering",
 	"going to worship", "worshipping", "seeking someone", "preaching", "hunting", "fleeing", "held by the god",
-	"flying through the air", "dazed", "on a mission", "celebrating"]
+	"flying through the air", "dazed", "on a mission", "celebrating",
+	"heading home to rest", "resting", "chatting", "going to pray", "praying", "in awe of the god", "scoffing",
+	"watching the god", "cowering", "going to the meal", "sharing a meal"]
+## Tiredness per second by activity (energy runs 0..1; below TIRED they go home to rest).
+const TIRED := 0.22
+const DRAIN_WORK := 0.0075
+const DRAIN_MOVE := 0.005
+const DRAIN_IDLE := 0.0015
 const CARRY_MEAT := 3
 const NAME_A := ["As", "Bjor", "Ei", "Frey", "Gun", "Hal", "Ing", "Kar", "Lif", "Mag", "Ol", "Rag", "Sig", "Thor", "Ulf", "Vig", "Yr", "Ast", "Dag", "Hel"]
 const NAME_B := ["a", "rid", "dis", "vald", "mund", "ny", "ar", "bjorn", "hild", "leif", "run", "stein", "ulf", "veig", "da", "ny", "gerd", "ketil"]
@@ -34,6 +42,9 @@ var grow := 1.0
 var phase := 0.0
 var dead := false
 var vname := ""
+var energy := 1.0
+var _playing := false
+var _fx_t := 0.0
 
 # religion
 var faith := 30.0
@@ -118,6 +129,7 @@ func setup(p_sim, p_tribe, pos: Vector3, child: bool) -> void:
 	scale = Vector3.ONE * grow
 	faith = randf_range(15.0, 45.0)
 	resentment = randf_range(0.0, 12.0)
+	energy = randf_range(0.55, 1.0)
 	set_tribe(p_tribe)
 
 func set_tribe(t) -> void:
@@ -189,6 +201,7 @@ func _tick(dt: float) -> void:
 		sim.kill_villager(self, "drowned")
 		return
 	_swim = gh < Terrain.SEA + 0.05
+	_drain(dt)
 	# threat scan
 	_threat_t -= dt
 	if _threat_t <= 0.0 and state != S.FLEE and state != S.STUNNED:
@@ -241,8 +254,15 @@ func _tick(dt: float) -> void:
 				sim.add_build_progress(bld, dt / sim.work_factor(tribe))
 		S.WANDER:
 			timer -= dt
-			if _move_to(target, dt, 0.6) or timer <= 0.0:
-				_reset(randf_range(0.5, 2.0))
+			if _move_to(target, dt, 0.6, 1.35 if _playing else 1.0) or timer <= 0.0:
+				if _playing and timer > 0.0:
+					# caught up with a playmate: a little jump for joy
+					_reset(0.0)
+					state = S.CHEER
+					threat = position + Vector3(sin(rotation.y), 0, cos(rotation.y))
+					timer = 1.0
+				else:
+					_reset(randf_range(0.5, 2.0))
 		S.TO_WORSHIP:
 			if not tribe.ceremony or heretic:
 				_reset(0.5)
@@ -324,7 +344,93 @@ func _tick(dt: float) -> void:
 			_target_pose({"lie": -1.45, "lift": 0.05, "arm_lz": 1.2, "arm_rz": -1.2, "leg_l": -0.2, "leg_r": 0.2})
 			if timer <= 0.0:
 				_reset(0.3)
+		S.TO_REST:
+			timer -= dt
+			if _move_to(target, dt, 0.6) or timer <= 0.0:
+				_clear_path()
+				state = S.REST
+				timer = randf_range(8.0, 14.0)
+		S.REST:
+			timer -= dt
+			energy = minf(1.0, energy + dt * 0.085)
+			_set_pose_rest()
+			if (timer <= 0.0 and energy > 0.6) or energy >= 1.0:
+				_reset(randf_range(0.2, 1.0))
+		S.CHAT:
+			timer -= dt
+			if other == null or other.dead or other.state != S.CHAT or other.is_busy_with_god():
+				_reset(randf_range(0.3, 1.0))
+			elif Vector2(other.position.x - position.x, other.position.z - position.z).length() > 1.6:
+				_move_to(other.position, dt, 1.4)
+			else:
+				_face(other.position, dt)
+				_set_pose_chat()
+				if timer <= 0.0:
+					resentment = maxf(0.0, resentment - 1.0)
+					_reset(randf_range(0.5, 1.5))
+		S.TO_PRAY:
+			if heretic or not tribe.has_shrine():
+				_reset(0.5)
+			elif _move_to(worship_spot, dt, 0.5):
+				state = S.PRAY
+				timer = randf_range(6.0, 9.0)
+		S.PRAY:
+			if heretic or not tribe.has_shrine():
+				_reset(0.5)
+			elif tribe.ceremony:
+				state = S.WORSHIP     # a ceremony began while praying: just stay and join it
+			else:
+				timer -= dt
+				_face(tribe.shrine_pos(), dt)
+				_set_pose_worship()
+				sim.religion.prayer_tick(self, dt)
+				_prayer_fx(dt, 2.5)
+				if timer <= 0.0:
+					_reset(randf_range(0.5, 1.5))
+		S.AWE, S.SCORN, S.LOOK, S.COWER:
+			timer -= dt
+			_face(threat, dt)
+			match state:
+				S.AWE: _set_pose_worship()
+				S.SCORN: _set_pose_scorn()
+				S.LOOK: _set_pose_look()
+				_: _set_pose_cower()
+			if timer <= 0.0:
+				_reset(randf_range(0.2, 0.8))
+		S.TO_MEAL:
+			if not tribe.meal:
+				_reset(0.5)
+			elif _move_to(target, dt, 0.5):
+				state = S.MEAL
+		S.MEAL:
+			if not tribe.meal:
+				_reset(randf_range(0.3, 1.2))
+			else:
+				_face(tribe.meal_pos, dt)
+				_set_pose_meal()
+				resentment = maxf(0.0, resentment - dt * 0.1)
+				energy = minf(1.0, energy + dt * 0.02)
 	_apply_pose(dt)
+
+## Tiredness from what the villager is doing.
+func _drain(dt: float) -> void:
+	var d := DRAIN_IDLE
+	match state:
+		S.REST, S.MEAL:
+			return
+		S.GATHER, S.BUILD, S.HUNT:
+			d = DRAIN_WORK
+		S.TO_RES, S.RETURN, S.TO_BUILD, S.WANDER, S.MISSION, S.FLEE, S.PREACH:
+			d = DRAIN_MOVE
+	if is_child(): d *= 1.3
+	energy = clampf(energy - dt * d * float(sim.cmod(tribe, "fatigue", 1.0)), 0.0, 1.0)
+
+## Golden motes rising from someone praying (only when the camera can see it).
+func _prayer_fx(dt: float, every: float) -> void:
+	_fx_t -= dt
+	if _fx_t > 0.0: return
+	_fx_t = every
+	if _on_screen(): FX.prayer(sim, position + Vector3(0, 1.4 * grow, 0), 3)
 
 func _pick_up(type: int, amt: float) -> void:
 	carry_type = type
@@ -347,6 +453,7 @@ func _reset(wait: float) -> void:
 	stuck_t = 0.0
 	parts["tool"].visible = false
 	parts["spear"].visible = false
+	_playing = false
 	_clear_path()
 
 # ------------------------------------------------------------------ decisions
@@ -361,28 +468,73 @@ func _decide_inner() -> void:
 		return
 	if not sim.nav.connected(position, tribe.center):
 		if sim.handle_stranded(self): return
+	var rel = sim.religion
+	var ceremony_now: bool = tribe.ceremony and not heretic and faith >= rel.WORSHIP_MIN and tribe.has_shrine()
+	# worn out: go home and rest (a ceremony still comes first for the faithful)
+	if energy < TIRED and not ceremony_now:
+		target = sim.rest_spot(self)
+		sim.stats["rests"] += 1
+		if sim.nav.connected(position, target):
+			state = S.TO_REST
+			timer = 25.0
+		else:
+			state = S.REST          # no way home: lie down where they are
+			timer = randf_range(8.0, 14.0)
+		return
 	if is_child():
+		if randf() < 0.35:
+			var pal = sim.playmate(self)
+			if pal != null:
+				target = pal.position
+				state = S.WANDER
+				timer = 8.0
+				_playing = true
+				sim.stats["plays"] += 1
+				return
 		_wander(tribe.center, 6.0)
 		return
-	var rel = sim.religion
-	if tribe.ceremony and not heretic and faith >= rel.WORSHIP_MIN and tribe.has_shrine():
+	if ceremony_now:
 		worship_spot = rel.worship_spot(tribe, self)
 		state = S.TO_WORSHIP
+		return
+	# a communal meal is on: most of those with nothing urgent to do join in
+	if tribe.meal and randf() < 0.7:
+		var a := randf() * TAU
+		target = tribe.meal_pos + Vector3(cos(a), 0, sin(a)) * randf_range(1.5, 2.3)
+		if sim.nav.walkable(target):
+			state = S.TO_MEAL
+			return
+	# the devout sometimes slip away to pray alone at the shrine
+	if not heretic and faith >= 50.0 and energy > 0.3 and tribe.has_shrine() and not tribe.starving \
+			and randf() < 0.04 * float(sim.cmod(tribe, "pray", 1.0)):
+		worship_spot = rel.worship_spot(tribe, self)
+		state = S.TO_PRAY
+		rel.stats["private_prayers"] = rel.stats.get("private_prayers", 0) + 1
 		return
 	if priest:
 		if rel.priest_duty(self): return
 	elif heretic and randf() < 0.22:
 		if rel.heretic_duty(self): return
+	var hungry: bool = tribe.starving or tribe.food < tribe.members.size()
 	var site = sim.pending_site(tribe)
-	if site != null and sim.count_builders(site) < (4 if site.type == "temple" else 3) and randf() < 0.75 and not (heretic and site.type in ["shrine", "temple"]):
+	# in a famine most hands go to finding food rather than building
+	var build_p := 0.25 if hungry and site != null and site.type != "hall" else 0.75
+	if site != null and sim.count_builders(site) < (4 if site.type == "temple" else 3) and randf() < build_p and not (heretic and site.type in ["shrine", "temple"]):
 		bld = site
 		state = S.TO_BUILD
 		return
+	# a word with a neighbour now and then (never while the tribe goes hungry)
+	if not hungry and randf() < 0.05:
+		var mate = sim.chat_partner(self)
+		if mate != null:
+			start_chat(mate)
+			return
 	if randf() < 0.06:
 		_wander(position, 12.0)
 		return
 	var want: int = sim.wanted_resource(tribe)
-	if want == WorldSim.RES_BUSH and randf() < 0.4:
+	var hunt_p: float = 0.4 * float(sim.cmod(tribe, "hunt", 1.0)) * (1.4 if tribe.starving else 1.0)
+	if want == WorldSim.RES_BUSH and randf() < hunt_p:
 		var a = sim.eco.find_prey(position, 32.0, self)
 		if a != null:
 			prey = a
@@ -393,7 +545,11 @@ func _decide_inner() -> void:
 	if want < 0:
 		_wander(tribe.center, 9.0)
 		return
-	res = sim.find_nearest(position, want, 42.0, self)
+	# look for work between here and home, so trips back to the store stay short
+	var origin := position
+	var mid := position.lerp(tribe.center, 0.5)
+	if sim.nav.walkable(mid) and sim.nav.connected(mid, position): origin = mid
+	res = sim.find_nearest(origin, want, 42.0, self)
 	if res == null:
 		for alt in [WorldSim.RES_BUSH, WorldSim.RES_TREE, WorldSim.RES_ROCK]:
 			res = sim.find_nearest(position, alt, 42.0, self)
@@ -403,6 +559,19 @@ func _decide_inner() -> void:
 		parts["tool"].visible = true
 	else:
 		_wander(position, 25.0)  # explore
+
+func start_chat(mate) -> void:
+	other = mate
+	state = S.CHAT
+	timer = randf_range(5.0, 8.0)
+	mate.join_chat(self, timer)
+	sim.stats["chats"] += 1
+
+func join_chat(a, t: float) -> void:
+	_reset(0.0)
+	other = a
+	state = S.CHAT
+	timer = t
 
 func can_reach(p: Vector3) -> bool:
 	return sim.nav.connected(position, p)
@@ -602,18 +771,118 @@ func _set_pose_cheer() -> void:
 	_target_pose({"arm_l": -2.9 + sin(phase) * 0.25, "arm_r": -2.9 - sin(phase) * 0.25, "arm_lz": 0.45, "arm_rz": -0.45,
 		"lift": j * 0.18, "leg_l": -j * 0.4, "leg_r": -j * 0.4, "head": -0.3})
 
-## Visible reaction to a divine act seen nearby.
+## Visible reaction to a divine act seen nearby. Close to destruction people
+## run; further off they cower. Miracles make the devout kneel in awe and
+## others cheer, while heretics stand and scoff.
 func react(kind: String, at: Vector3) -> void:
-	if state in [S.CARRIED, S.FLYING, S.STUNNED, S.WORSHIP, S.TALK] or carry_amt > 0.0: return
+	if state in [S.CARRIED, S.FLYING, S.STUNNED, S.WORSHIP, S.TALK, S.PRAY] or carry_amt > 0.0: return
+	if state == S.REST and kind != "harm": return
+	var d := Vector2(at.x - position.x, at.z - position.z).length()
+	_reset(0.0)
 	threat = at
+	sim.stats["reactions"] += 1
 	if kind == "harm":
-		_reset(0.0)
-		state = S.FLEE
-		timer = randf_range(2.0, 3.5)
-	elif not heretic:
-		_reset(0.0)
+		if d < 9.0:
+			state = S.FLEE
+			timer = randf_range(2.0, 3.5)
+		else:
+			state = S.COWER
+			timer = randf_range(1.8, 2.8)
+	elif heretic:
+		state = S.SCORN
+		timer = randf_range(1.5, 2.5)
+	elif faith >= 60.0:
+		state = S.AWE
+		timer = randf_range(2.2, 3.2)
+	else:
 		state = S.CHEER
 		timer = randf_range(1.8, 3.0)
+
+## The God Hand is busy nearby: stop and stare (most people, not all).
+func watch_god(at: Vector3) -> void:
+	if carry_amt > 0.0 or randf() > 0.6: return
+	if not (state in [S.IDLE, S.WANDER, S.TO_RES, S.GATHER, S.TO_BUILD, S.BUILD, S.CHAT, S.REST, S.TO_REST, S.TO_MEAL]): return
+	_reset(0.0)
+	threat = at
+	state = S.LOOK
+	timer = randf_range(1.2, 2.2)
+	sim.stats["gawks"] += 1
+
+func _set_pose_rest() -> void:
+	phase += 0.03
+	if energy < 0.5:
+		# asleep on the ground
+		_target_pose({"lie": -1.42, "lift": 0.02, "arm_l": -0.3, "arm_r": 0.2, "arm_lz": 0.3, "arm_rz": -0.2,
+			"leg_l": -0.15, "leg_r": 0.1, "head": 0.1 + sin(phase) * 0.03})
+	else:
+		# sitting up, stretching now and then
+		var s := sin(phase)
+		_target_pose({"lift": -0.42, "leg_l": -1.45, "leg_r": -1.45, "torso": -0.15, "head": -0.05,
+			"arm_l": -0.5 if s < 0.8 else -2.8, "arm_r": -0.5 if s < 0.8 else -2.8, "arm_lz": 0.25, "arm_rz": -0.25,
+			"head_y": sin(phase * 0.6) * 0.4})
+
+func _set_pose_chat() -> void:
+	phase += 0.1
+	var s := sin(phase)
+	# take turns: gesture for a while, then listen and nod
+	if int(phase / 3.0 + get_instance_id() % 2) % 2 == 0:
+		_target_pose({"arm_r": -1.2 + s * 0.45, "arm_l": -0.6 - s * 0.2, "arm_rz": -0.25, "head": -0.05 + s * 0.05, "torso": 0.03})
+	else:
+		_target_pose({"arm_l": 0.05, "arm_r": 0.05, "head": 0.12 + absf(s) * 0.12, "torso": 0.02})
+
+func _set_pose_scorn() -> void:
+	phase += 0.15
+	# arms folded, head shaking
+	_target_pose({"arm_l": -1.25, "arm_r": -1.25, "arm_lz": -0.75, "arm_rz": 0.75, "torso": -0.08,
+		"head_y": sin(phase * 1.6) * 0.45, "head": -0.1})
+
+func _set_pose_look() -> void:
+	phase += 0.08
+	# staring up at the hand and pointing
+	_target_pose({"head": -0.6, "torso": -0.12, "arm_r": -2.35 + sin(phase) * 0.1, "arm_l": 0.1, "arm_rz": -0.15})
+
+func _set_pose_cower() -> void:
+	phase += 0.3
+	_target_pose({"lift": -0.14, "leg_l": -0.7, "leg_r": -0.7, "torso": 0.5, "head": 0.45,
+		"arm_l": -2.6 + sin(phase) * 0.08, "arm_r": -2.6 - sin(phase) * 0.08, "arm_lz": 0.4, "arm_rz": -0.4})
+
+func _set_pose_meal() -> void:
+	phase += 0.07
+	var s := sin(phase)
+	# sitting by the fire, bringing food to the mouth now and then
+	_target_pose({"lift": -0.42, "leg_l": -1.45, "leg_r": -1.45, "torso": 0.05,
+		"arm_r": -1.9 if s > 0.5 else -0.7, "arm_l": -0.6, "head": 0.08 if s > 0.5 else -0.02,
+		"head_y": sin(phase * 0.5) * 0.35})
+
+## Everything needed to bring this villager back after a reload. Moment-to-moment
+## tasks (paths, targets) are not stored: they simply decide again.
+func to_save() -> Dictionary:
+	return {"tribe": -1, "pos": position, "rot": rotation.y, "name": vname, "age": age, "life": lifespan,
+		"grow": grow, "speed": speed, "faith": faith, "res": resentment, "heretic": heretic, "cause": heresy_cause,
+		"priest": priest, "miracle": last_miracle, "carry_type": carry_type, "carry_amt": carry_amt,
+		"energy": energy, "grievance": str(get_meta("grievance", ""))}
+
+func restore_state(d: Dictionary) -> void:
+	rotation.y = float(d.get("rot", 0.0))
+	vname = str(d.get("name", vname))
+	age = float(d.get("age", age))
+	lifespan = float(d.get("life", lifespan))
+	grow = clampf(float(d.get("grow", 1.0)), 0.3, 1.0)
+	scale = Vector3.ONE * grow
+	speed = float(d.get("speed", speed))
+	faith = float(d.get("faith", faith))
+	resentment = float(d.get("res", resentment))
+	last_miracle = float(d.get("miracle", 0.0))
+	energy = clampf(float(d.get("energy", 1.0)), 0.0, 1.0)
+	var g := str(d.get("grievance", ""))
+	if g != "": set_meta("grievance", g)
+	if bool(d.get("priest", false)): set_priest(true)
+	if bool(d.get("heretic", false)): set_heretic(true, str(d.get("cause", "")))
+	var ca := float(d.get("carry_amt", 0.0))
+	var ct := int(d.get("carry_type", -1))
+	if ca > 0.0 and sim.carry_mats.has(ct): _pick_up(ct, ca)
+	_reset(randf_range(0.0, 1.0))
+	_update_marker()
 
 func _set_pose_panic() -> void:
 	_pose_t["arm_l"] = -2.8 + sin(phase * 1.3) * 0.3

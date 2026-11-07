@@ -11,6 +11,8 @@ signal message(text: String)
 ## Every frame a brush power (land / remove / raise / lower) is applied, and each time Sow Forest plants.
 signal brush_cast(id: String, pos: Vector3)
 signal meteor_impact(pos: Vector3)
+## A power was refused because there is not enough prayer (belief-based mode only).
+signal insufficient(idx: int, cost: float)
 
 const LIST := [
 	{"id": "land", "name": "Create Land", "short": "Land", "key": "1", "icon": "res://assets/icons/land.png", "color": Color(0.55, 0.95, 0.45), "cost": 0.0,
@@ -101,6 +103,23 @@ func select(idx: int) -> void:
 func current_id() -> String:
 	return LIST[current]["id"] if current >= 0 else ""
 
+## Prayer cost of power idx as it would be paid right now (Create Life costs
+## half for animals). Terrain tools are free.
+func cost_of(idx: int) -> float:
+	if idx < 0 or idx >= LIST.size(): return 0.0
+	var c: float = LIST[idx]["cost"]
+	if LIST[idx]["id"] == "villager" and life_type != "villagers": c *= 0.5
+	return c
+
+## True when power idx can be cast now (always true with infinite prayer).
+func affordable(idx: int) -> bool:
+	return sim.religion.can_afford(cost_of(idx))
+
+## "25", "7.5", "0.6" - costs as players read them.
+static func fmt_cost(c: float) -> String:
+	if is_equal_approx(c, roundf(c)): return "%d" % int(roundf(c))
+	return "%.1f" % c
+
 func toggle_land_mode() -> void:
 	land_mode = "tile" if land_mode == "brush" else "brush"
 	power_changed.emit(current)
@@ -169,6 +188,7 @@ func _process(dt: float) -> void:
 	if hover_pos != null and current >= 0:
 		var id := current_id()
 		var c: Color = LIST[current]["color"]
+		if not affordable(current): c = Color(1.0, 0.25, 0.2)   # can't afford it: red cursor
 		cursor_mat.albedo_color = Color(c, 0.85)
 		if id == "land" and land_mode == "tile":
 			cursor.visible = false
@@ -192,13 +212,15 @@ func tile_center(p: Vector3) -> Vector3:
 	var cz := floorf((p.z + Terrain.HALF) / Terrain.TILE) * Terrain.TILE + Terrain.TILE * 0.5 - Terrain.HALF
 	return Vector3(cx, 0, cz)
 
-func _pay(idx: int, scale := 1.0) -> bool:
-	var cost: float = LIST[idx]["cost"] * scale
+func _pay(idx: int) -> bool:
+	var cost := cost_of(idx)
 	if cost <= 0.0: return true
 	if sim.religion.spend(cost): return true
+	insufficient.emit(idx, cost)
 	if _msg_t <= 0.0:
 		_msg_t = 1.5
-		message.emit("Not enough prayer power for %s (needs %d). Build shrines and let your people worship." % [LIST[idx]["name"], int(cost)])
+		message.emit("Not enough prayer for %s: it costs %s, you have %s.\nLet your people worship at shrines, or turn on Infinite prayer [P]." % [
+			LIST[idx]["name"], fmt_cost(cost), fmt_cost(floorf(sim.religion.prayer * 10.0) / 10.0)])
 	return false
 
 ## Land shaping near a settlement counts as a (small) blessing.
@@ -250,7 +272,7 @@ func cast(idx_or_id, p: Vector3, dt: float) -> void:
 			if cooldown > 0.0: return
 			cooldown = 0.25
 			if not terrain.is_land(p.x, p.z): return
-			if not _pay(idx, 1.0 if life_type == "villagers" else 0.5): return
+			if not _pay(idx): return
 			if life_type == "villagers":
 				var t := sim.nearest_tribe(p, 22.0)
 				if t != null and not sim.nav.connected(p, t.center): t = null
