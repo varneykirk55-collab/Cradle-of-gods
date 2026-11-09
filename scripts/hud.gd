@@ -44,6 +44,11 @@ var audio_box: VBoxContainer
 var audio_sliders := {}
 var audio_mute: CheckBox
 var mode_label: Label
+var stats_toggle: Button
+var menu_toggle: Button
+var menu_row: HBoxContainer
+var tribe_title: Label
+var _stats_open := false
 var cost_labels: Array = []
 var save_button: Button
 var load_button: Button
@@ -54,14 +59,14 @@ var _hover := -1
 var _hover_text := ""
 
 const GOLD := Color(0.86, 0.7, 0.38)
-const PANEL_BG := Color(0.05, 0.07, 0.13, 0.82)
+const PANEL_BG := Color(0.05, 0.07, 0.13, 0.7)
 const HERETIC := Color(0.78, 0.5, 1.0)
 
 func _panel_style(radius := 8) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = PANEL_BG
-	sb.border_color = GOLD
-	sb.set_border_width_all(2)
+	sb.border_color = GOLD.darkened(0.3)
+	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(radius)
 	sb.content_margin_left = 10
 	sb.content_margin_right = 10
@@ -110,6 +115,15 @@ func _small_button(text: String, tip: String) -> Button:
 	_style_button(b)
 	return b
 
+func _header_button(text: String, tip: String) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.tooltip_text = tip
+	b.custom_minimum_size = Vector2(52, 22)
+	b.add_theme_font_size_override("font_size", 12)
+	_style_button(b)
+	return b
+
 func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 	main = p_main
 	sim = p_sim
@@ -126,7 +140,17 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 	root.add_child(sp)
 	var sv := VBoxContainer.new()
 	sp.add_child(sv)
-	sv.add_child(_label("CRADLE OF GODS", 20, GOLD))
+	var head := HBoxContainer.new()
+	sv.add_child(head)
+	var title_l := _label("CRADLE OF GODS", 20, GOLD)
+	title_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title_l)
+	stats_toggle = _header_button("More", "Show all the world statistics.")
+	stats_toggle.pressed.connect(_toggle_stats)
+	head.add_child(stats_toggle)
+	menu_toggle = _header_button("Menu", "Infinite prayer, faith overlay, sound, save and load.")
+	menu_toggle.pressed.connect(_toggle_menu)
+	head.add_child(menu_toggle)
 	stats_label = _label("", 14)
 	sv.add_child(stats_label)
 	var pr := HBoxContainer.new()
@@ -151,8 +175,11 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 	prayer_bar.mouse_filter = Control.MOUSE_FILTER_STOP
 	mode_label = _label("", 12, Color(0.85, 0.82, 0.72))
 	sv.add_child(mode_label)
+	mode_label.visible = false
 	var opts := HBoxContainer.new()
 	sv.add_child(opts)
+	menu_row = opts
+	opts.visible = false
 	sandbox_box = CheckBox.new()
 	sandbox_box.text = "Infinite prayer [P]"
 	sandbox_box.focus_mode = Control.FOCUS_NONE
@@ -207,6 +234,7 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 	var th := HBoxContainer.new()
 	tv.add_child(th)
 	var tl := _label("SETTLEMENTS", 15, GOLD)
+	tribe_title = tl
 	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	th.add_child(tl)
 	var fold := Button.new()
@@ -462,6 +490,7 @@ func setup(p_main, p_sim: WorldSim, p_powers: Powers, p_hand: GodHand) -> void:
 	speed_buttons[1].button_pressed = true
 	_on_power_changed(powers.current)
 	_update_stats()
+	toggle_tribes()   # settlements list starts collapsed; its title shows what needs attention
 
 const HELP_TEXT := """You are a god watching over a young world. Tribes gather, build, worship and grow.
 Win their faith with miracles; heretics arise from famine, neglect and cruelty.
@@ -482,7 +511,7 @@ RELIGION P infinite prayer on / off   V faith overlay (gold = devout, white = pr
 WORLD    F5 save   F9 load (one save slot)   Each tribe has a culture: Pious, Industrious,
          Hunters, Wanderers or Festive (see the settlement panel)
 TIME     Space pause   - / + slower / faster    T fold settlement list    H or F1 help    F12 screenshot
-SOUND    M mute    Sound button (top left): music, ambience and effects volume"""
+SOUND    M mute    Menu button (top left) > Sound: music, ambience and effects volume"""
 
 func _on_life_selected(i: int) -> void:
 	powers.life_type = Powers.LIFE_TYPES[i]
@@ -587,6 +616,17 @@ func _on_power_changed(idx: int) -> void:
 	life_option.select(Powers.LIFE_TYPES.find(powers.life_type))
 	_refresh_info()
 
+func _toggle_stats() -> void:
+	_stats_open = not _stats_open
+	stats_toggle.text = "Less" if _stats_open else "More"
+	mode_label.visible = _stats_open
+	_update_stats()
+
+func _toggle_menu() -> void:
+	menu_row.visible = not menu_row.visible
+	menu_toggle.text = "Close" if menu_row.visible else "Menu"
+	if not menu_row.visible: audio_box.visible = false
+
 func toggle_tribes() -> void:
 	tribe_box.visible = not tribe_box.visible
 	tribe_fold.text = "-" if tribe_box.visible else "+"
@@ -622,10 +662,10 @@ func _on_flash(strength: float) -> void:
 func _on_event(text: String, color: Color) -> void:
 	var l := _label(text, 13, color.lightened(0.25))
 	log_box.add_child(l)
-	while log_box.get_child_count() > 8:
+	while log_box.get_child_count() > 4:
 		log_box.get_child(0).free()
 	var tw := l.create_tween()
-	tw.tween_interval(10.0)
+	tw.tween_interval(7.0)
 	tw.tween_property(l, "modulate:a", 0.0, 1.5)
 	tw.tween_callback(l.queue_free)
 
@@ -649,11 +689,20 @@ func _update_stats() -> void:
 	var day := int(sim.time / 60.0) + 1
 	var rt := sim.religion.totals()
 	var ac := sim.eco.counts()
-	stats_label.text = "Year %d   (%s)\nPopulation %d   Settlements %d\nBuildings %d   Trees %d   Fires %d\nWorshippers %d   Heretics %d   Priests %d\nShrines %d   Temples %d   Avg faith %d%%\nDeer %d  Rabbits %d  Wolves %d  Birds %d\nTool: %s" % [
+	var full_text := "Year %d   (%s)\nPopulation %d   Settlements %d\nBuildings %d   Trees %d   Fires %d\nWorshippers %d   Heretics %d   Priests %d\nShrines %d   Temples %d   Avg faith %d%%\nDeer %d  Rabbits %d  Wolves %d  Birds %d\nTool: %s" % [
 		day, main.speed_name(), sim.population(), tr.size(), sim.building_count(), sim.count_type(WorldSim.RES_TREE),
 		sim.fires.size(), rt["worshippers"], rt["heretics"], rt["priests"], rt["shrines"], rt["temples"], int(rt["avg_faith"]),
 		ac["deer"], ac["rabbit"], ac["wolf"], ac["bird"],
 		Powers.LIST[powers.current]["name"] if powers.current >= 0 else "God Hand"]
+	if _stats_open:
+		stats_label.text = full_text
+	else:
+		var hz: String = "   Heretics %d" % rt["heretics"] if rt["heretics"] > 0 else ""
+		stats_label.text = "Year %d   (%s)\nPopulation %d   Settlements %d%s" % [day, main.speed_name(), sim.population(), tr.size(), hz]
+	var need := 0
+	for t in tr:
+		if t.starving or t.heretics > 0: need += 1
+	tribe_title.text = "SETTLEMENTS  %d" % tr.size() + ("   (%d need attention)" % need if need > 0 else "")
 	var rel := sim.religion
 	prayer_bar.value = rel.prayer
 	var rate := "+%.1f/s" % rel.income
