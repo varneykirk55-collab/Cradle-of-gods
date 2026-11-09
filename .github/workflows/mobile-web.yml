@@ -1,0 +1,73 @@
+name: Mobile web build
+
+# Exports the mobile/ Godot project to a browser build and publishes it to the
+# gh-pages branch. In the repo: Settings > Pages > Build and deployment >
+# Source "Deploy from a branch" > Branch gh-pages, folder / (root). One time only.
+on:
+  push:
+    branches: [cradle-of-gods-mobile-port]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-web
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot and the Web export templates
+        run: |
+          set -euo pipefail
+          BASE="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
+          curl -fL --retry 3 -o godot.zip "$BASE/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -fL --retry 3 -o templates.tpz "$BASE/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          sudo chmod +x /usr/local/bin/godot
+          TDIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$TDIR"
+          unzip -q -j templates.tpz "templates/version.txt" "templates/web_*" -d "$TDIR"
+          ls -la "$TDIR"
+          godot --version
+
+      - name: Import the project
+        working-directory: mobile
+        run: |
+          # First import builds .godot/. It can report harmless errors; the export step is the real check.
+          godot --headless --import 2>&1 | tail -40 || true
+
+      - name: Export "Web (Mobile)"
+        working-directory: mobile
+        run: |
+          set -euo pipefail
+          mkdir -p export
+          godot --headless --export-release "Web (Mobile)" export/index.html 2>&1 | tail -60
+          ls -la export
+          test -s export/index.html
+          test -s export/index.pck
+          test -s export/index.wasm
+
+      - name: Publish to the gh-pages branch
+        run: |
+          set -euo pipefail
+          cd mobile/export
+          touch .nojekyll
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy mobile build from ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
